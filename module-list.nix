@@ -1,0 +1,3 @@
+[
+  ./rabbitmq/default.nix
+]

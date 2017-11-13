@@ -1,0 +1,74 @@
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+spec:
+  serviceName: rabbitmq
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+      annotations:
+        "prometheus.io/scrape": "true"
+        "prometheus.io/port": "9090"
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: rabbitmq-prom-exporter
+        image: kbudde/rabbitmq-exporter
+        env:
+        - name: RABBIT_USER
+        - name: RABBIT_PASSWORD
+        - name: OUTPUT_FORMAT
+          value: JSON
+        resources:
+          requests:
+            cpu: 50m
+            memory: 50Mi
+        ports:
+          - name: prometheus
+            containerPort: 9090
+      - name: rabbitmq
+        image: rabbitmq:3.6.6-management-alpine
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - >
+                if [ -z "$(grep rabbitmq /etc/resolv.conf)" ]; then
+                  sed "s/^search \([^ ]\+\)/search $APP_NAME-cluster.\1 \1/" /etc/resolv.conf > /etc/resolv.conf.new;
+                  cat /etc/resolv.conf.new > /etc/resolv.conf;
+                  rm /etc/resolv.conf.new;
+                fi;
+                until rabbitmqctl node_health_check; do sleep 1; done;
+                if [[ "$HOSTNAME" != "$APP_NAME-0" && -z "$(rabbitmqctl cluster_status | grep $APP_NAME-0)" ]]; then
+                  rabbitmqctl stop_app;
+                  rabbitmqctl join_cluster rabbit@$APP_NAME-0;
+                  rabbitmqctl start_app;
+                fi;
+                rabbitmqctl set_policy ha-all "." '{"ha-mode":"exactly","ha-params":3,"ha-sync-mode":"automatic"}'
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        ports:
+          - name: queue-port
+            containerPort: 5672
+          - name: management-port
+            containerPort: 15672
+          - name: cluster-port
+            containerPort: 4369
+          - name: dist-port
+            containerPort: 25672
+          - name: prometheus
+            containerPort: 9090
+        env: 
+          - name: RABBITMQ_DEFAULT_USER
+          - name: RABBITMQ_DEFAULT_PASS
+          - name: RABBITMQ_LOG_LEVEL
+            value: info
+          - name: RABBITMQ_ERLANG_COOKIE
+      serviceAccount: rabbitmq
