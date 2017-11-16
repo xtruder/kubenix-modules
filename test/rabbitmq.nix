@@ -1,7 +1,7 @@
 { config, ... }:
 
 {
-  require = import ../module-list.nix;
+  require = [../services/rabbitmq];
 
   kubernetes.modules.rabbitmq = {
     module = "rabbitmq";

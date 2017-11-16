@@ -3,12 +3,12 @@
 with pkgs.lib;
 
 let
-  nix-kubernetes = import (builtins.fetchgit {
+  kubenix = import (builtins.fetchgit {
     url = "https://github.com/xtruder/kubenix.git";
   }) { inherit pkgs; };
 in {
-  test = {
-    rabbitmq = nix-kubernetes.buildResources {
+  tests = {
+    rabbitmq = kubenix.buildResources {
       configuration = ./test/rabbitmq.nix;
     };
   };
