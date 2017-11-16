@@ -11,5 +11,9 @@ in {
     rabbitmq = kubenix.buildResources {
       configuration = ./test/rabbitmq.nix;
     };
+
+    elasticsearch = kubenix.buildResources {
+      configuration = ./test/elasticsearch.nix;
+    };
   };
 }
