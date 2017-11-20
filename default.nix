@@ -15,5 +15,9 @@ in {
     elasticsearch = kubenix.buildResources {
       configuration = ./test/elasticsearch.nix;
     };
+
+    redis = kubenix.buildResources {
+      configuration = ./test/redis.nix;
+    };
   };
 }
