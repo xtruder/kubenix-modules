@@ -7,6 +7,8 @@ let
     url = "https://github.com/xtruder/kubenix.git";
   }) { inherit pkgs; };
 in {
+  services = import ./services/module-list.nix;
+
   tests = {
     rabbitmq = kubenix.buildResources {
       configuration = ./test/rabbitmq.nix;
