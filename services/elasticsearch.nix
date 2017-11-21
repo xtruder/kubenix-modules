@@ -217,10 +217,10 @@ in {
             serviceName = "${name}-discovery";
             volumeClaimTemplates = [{
               metadata.name = "storage";
-              metadata.annotations."volume.beta.kubernetes.io/storage-class" = mkIf (cfg.storage.class!=null) cfg.storage.class;
               spec = {
                 accessModes = ["ReadWriteOnce"];
                 resources.requests.storage = cfg.storage.size;
+                storageClassName = cfg.storage.class;
               };
             }];
           });
