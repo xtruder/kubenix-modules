@@ -18,6 +18,10 @@ in {
       configuration = ./test/elasticsearch.nix;
     };
 
+    elasticsearch-curator = kubenix.buildResources {
+      configuration = ./test/elasticsearch-curator.nix;
+    };
+
     redis = kubenix.buildResources {
       configuration = ./test/redis.nix;
     };
