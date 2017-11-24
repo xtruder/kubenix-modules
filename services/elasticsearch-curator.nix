@@ -12,55 +12,55 @@ let
 in {
   config.kubernetes.moduleDefinitions.elasticsearch-curator.module = {name, config, ...}: {
     options = {
-			hosts = mkOption {
-				description = "Elasticsearch hosts";
-				default = ["elasticsearch"];
-				type = types.listOf types.str;
-			};
+      hosts = mkOption {
+        description = "Elasticsearch hosts";
+        default = ["elasticsearch"];
+        type = types.listOf types.str;
+      };
 
-			port = mkOption {
-				description = "Elasticsearch port";
-				default = 9200;
-				type = types.int;
-			};
+      port = mkOption {
+        description = "Elasticsearch port";
+        default = 9200;
+        type = types.int;
+      };
 
-			ssl = mkOption {
-				description = "Whether currator should use ssl or not";
-				default = false;
-				type = types.bool;
-			};
+      ssl = mkOption {
+        description = "Whether currator should use ssl or not";
+        default = false;
+        type = types.bool;
+      };
 
-			username = mkOption {
-				description = "Simple auth username";
-				default = null;
-				type = types.nullOr types.str;
-			};
+      username = mkOption {
+        description = "Simple auth username";
+        default = null;
+        type = types.nullOr types.str;
+      };
 
-			password = mkOption {
-				description = "Simple auth password";
-				default = null;
-				type = types.nullOr types.str;
-			};
+      password = mkOption {
+        description = "Simple auth password";
+        default = null;
+        type = types.nullOr types.str;
+      };
 
-			aws = {
-				key = mkOption {
-					description = "Aws key";
-					type = types.nullOr types.str;
-					default = null;
-				};
+      aws = {
+        key = mkOption {
+          description = "Aws key";
+          type = types.nullOr types.str;
+          default = null;
+        };
 
-				secretKey = mkOption {
-					description = "Aws secret key";
-					type = types.nullOr types.str;
-					default = null;
-				};
+        secretKey = mkOption {
+          description = "Aws secret key";
+          type = types.nullOr types.str;
+          default = null;
+        };
 
-				region = mkOption {
-					description = "Aws region";
-					type = types.nullOr types.str;
-					default = null;
-				};
-			};
+        region = mkOption {
+          description = "Aws region";
+          type = types.nullOr types.str;
+          default = null;
+        };
+      };
 
       schedule = mkOption {
         description = "Curator job schedule";
@@ -116,14 +116,14 @@ in {
           } // (optionalAttrs (config.username != null && config.password != null) {
             http_auth = "${config.username}:${config.password}";
           });
-					logging = {
-						loglevel = "INFO";
-						logformat = "json";
-					};
+          logging = {
+            loglevel = "INFO";
+            logformat = "json";
+          };
         };
         data."actions.yml" = toYAML {
           actions = listToAttrs (imap (i: action: 
-            nameValuePair (toString i) action
+          nameValuePair (toString i) action
           ) config.actions);
         };
       };
