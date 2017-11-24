@@ -21,5 +21,9 @@ in {
     redis = kubenix.buildResources {
       configuration = ./test/redis.nix;
     };
+
+    nginx = kubenix.buildResources {
+      configuration = ./test/nginx.nix;
+    };
   };
 }
