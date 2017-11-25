@@ -106,7 +106,7 @@ in {
 
       kubernetes.resources.configMaps.curator = {
         metadata.name = name;
-        data."config.yml" = toYAML {
+        data."config.yaml" = toYAML {
           client = {
             inherit (config) hosts port;
             use_ssl = config.ssl;
@@ -121,7 +121,7 @@ in {
             logformat = "json";
           };
         };
-        data."actions.yml" = toYAML {
+        data."actions.yaml" = toYAML {
           actions = listToAttrs (imap (i: action: 
           nameValuePair (toString i) action
           ) config.actions);
