@@ -12,6 +12,12 @@ let
 in {
   config.kubernetes.moduleDefinitions.elasticsearch-curator.module = {name, config, ...}: {
     options = {
+      image = mkOption {
+        description = "Elasticsearc image";
+        type = types.str;
+        default = "bobrik/curator:5.2.0";
+      };
+
       hosts = mkOption {
         description = "Elasticsearch hosts";
         default = ["elasticsearch"];
@@ -84,7 +90,7 @@ in {
             spec.template = {
               spec = {
                 containers.curator = {
-                  image = "bobrik/curator:4.2.4";
+                  image = config.image;
                   args = ["--config" "/etc/curator/config.yaml" "/etc/curator/actions.yaml"];
                   volumeMounts = [{
                     name = "config";
