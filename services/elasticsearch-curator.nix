@@ -78,6 +78,7 @@ in {
       kubernetes.resources.cronJobs.elasticsearch-curator = {
         metadata.name = name;
         spec = {
+          concurrencyPolicy = "Forbid";
           schedule = config.schedule;
           jobTemplate = {
             spec.template = {
