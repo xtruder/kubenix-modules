@@ -42,6 +42,7 @@ with k8s;
 
       password = mkValueOrSecretOption {
         description = "Database password";
+        default = null;
       };
 
       storage = {
