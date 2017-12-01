@@ -7,4 +7,5 @@
   ./galera/default.nix
   ./deployer.nix
   ./etcd.nix
+  ./rippled.nix
 ]

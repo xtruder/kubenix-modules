@@ -41,5 +41,9 @@ in {
     deployer = kubenix.buildResources {
       configuration = ./test/deployer.nix;
     };
+
+    rippled = kubenix.buildResources {
+      configuration = ./test/rippled.nix;
+    };
   };
 }
