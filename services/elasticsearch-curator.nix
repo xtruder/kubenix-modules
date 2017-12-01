@@ -3,13 +3,7 @@
 with k8s;
 with lib;
 
-let
-  toYAML = config: builtins.readFile (pkgs.runCommand "to-yaml" {
-    buildInputs = [pkgs.remarshal];
-  } ''
-    remarshal -i ${pkgs.writeText "to-json" (builtins.toJSON config)} -if json -of yaml > $out
-  '');
-in {
+{
   config.kubernetes.moduleDefinitions.elasticsearch-curator.module = {name, config, ...}: {
     options = {
       image = mkOption {
