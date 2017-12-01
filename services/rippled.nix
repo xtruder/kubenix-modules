@@ -197,7 +197,7 @@ ${config.extraConfig}
         metadata.labels.app = name;
         spec = {
           type = "NodePort";
-          selector.name = name;
+          selector.app = name;
           ports = [{
             name = "websockets-alt";
             port = 5006;
