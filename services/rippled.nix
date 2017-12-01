@@ -152,8 +152,8 @@ ${config.extraConfig}
                 command = ["/opt/ripple/bin/rippled" "--conf" "/etc/rippled/rippled.conf"];
 
                 resources.requests = {
-                  cpu = "16000Mi";
-                  memory = "2000Mi";
+                  memory = "16000Mi";
+                  cpu = "2000Mi";
                 };
 
                 resources.limits = {
