@@ -153,7 +153,7 @@ ${config.extraConfig}
 
                 resources.requests = {
                   memory = "16000Mi";
-                  cpu = "2000Mi";
+                  cpu = "2000m";
                 };
 
                 resources.limits = {
