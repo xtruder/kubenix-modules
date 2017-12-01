@@ -5,5 +5,6 @@
   ./redis.nix
   ./nginx.nix
   ./galera/default.nix
+  ./deployer.nix
   ./etcd.nix
 ]

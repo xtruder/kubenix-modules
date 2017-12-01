@@ -37,5 +37,9 @@ in {
     etcd = kubenix.buildResources {
       configuration = ./test/etcd.nix;
     };
+
+    deployer = kubenix.buildResources {
+      configuration = ./test/deployer.nix;
+    };
   };
 }
