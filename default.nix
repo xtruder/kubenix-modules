@@ -33,5 +33,9 @@ in {
     galera = kubenix.buildResources {
       configuration = ./test/galera.nix;
     };
+
+    etcd = kubenix.buildResources {
+      configuration = ./test/etcd.nix;
+    };
   };
 }
