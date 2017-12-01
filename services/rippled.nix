@@ -140,12 +140,12 @@ ${config.extraConfig}
     config = {
       kubernetes.resources.statefulSets.rippled = {
         metadata.name = name;
-        metadata.labels.app = "rippled";
+        metadata.labels.app = name;
         spec = {
           replicas = config.replicas;
           serviceName = name;
           template = {
-            metadata.labels.app = "rippled";
+            metadata.labels.app = name;
             spec = {
               containers.rippled = {
                 image = config.image;
@@ -194,7 +194,7 @@ ${config.extraConfig}
 
       kubernetes.resources.services.rippled = {
         metadata.name = name;
-        metadata.labels.app = "rippled";
+        metadata.labels.app = name;
         spec = {
           type = "NodePort";
           selector.name = name;
