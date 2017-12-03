@@ -12,7 +12,7 @@ in mkMerge [{
       size = mkOption {
         description = "Etcd cluster size";
         type = types.int;
-        default = 3;
+        default = 1;
       };
 
       version = mkOption {
