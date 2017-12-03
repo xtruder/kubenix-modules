@@ -83,6 +83,22 @@ pool.ntp.org
 ${config.extraConfig}
   '';
 
+  resources = {
+    small = {
+      cpu = "500m";
+      memory = "2000Mi";
+    };
+
+    medium = {
+      cpu = "1000m";
+      memory = "8000Mi";
+    };
+
+    large = {
+      cpu = "2000m";
+      memory = "16000Mi";
+    };
+  };
 
   in {
     options = {
@@ -151,14 +167,8 @@ ${config.extraConfig}
                 image = config.image;
                 command = ["/opt/ripple/bin/rippled" "--conf" "/etc/rippled/rippled.conf"];
 
-                resources.requests = {
-                  memory = "16000Mi";
-                  cpu = "2000m";
-                };
-
-                resources.limits = {
-                  memory = "16000Mi";
-                };
+                resources.requests = resources.${config.nodeSize};
+                resources.limits = resources.${config.nodeSize};
 
                 volumeMounts = [{
                   name = "config";
