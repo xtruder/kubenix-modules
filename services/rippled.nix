@@ -111,7 +111,7 @@ ${config.extraConfig}
       replicas = mkOption {
         description = "Number of nginx replicas";
         type = types.int;
-        default = 3;
+        default = 1;
       };
 
       storage = {
@@ -130,7 +130,7 @@ ${config.extraConfig}
 
       nodeSize = mkOption {
         description = "Rippled node size";
-        default = "large";
+        default = "small";
         type = types.enum ["small" "medium" "large"];
       };
 
