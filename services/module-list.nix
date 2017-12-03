@@ -8,4 +8,5 @@
   ./deployer.nix
   ./etcd.nix
   ./rippled.nix
+  ./zetcd.nix
 ]

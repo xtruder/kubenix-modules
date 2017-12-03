@@ -45,5 +45,9 @@ in {
     rippled = kubenix.buildResources {
       configuration = ./test/rippled.nix;
     };
+
+    zetcd = kubenix.buildResources {
+      configuration = ./test/zetcd.nix;
+    };
   };
 }
