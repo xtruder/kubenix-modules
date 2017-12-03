@@ -84,6 +84,7 @@ in mkMerge [{
       kubernetes.resources.deployments.etcd-operator = {
         metadata.name = "etcd-operator";
         metadata.namespace = config.namespace;
+        metadata.labels.app = "etcd-operator";
         spec = {
           replicas = 1;
           template = {
@@ -150,7 +151,7 @@ in mkMerge [{
         metadata.name = "etcd-restore-operator";
         metadata.namespace = config.namespace;
         spec = {
-          selector.name = "etcd-restore-operator";
+          selector.app = "etcd-restore-operator";
           ports = [{
             protocol = "TCP";
             port = 19999;
