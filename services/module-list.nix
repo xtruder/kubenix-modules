@@ -9,4 +9,5 @@
   ./etcd.nix
   ./rippled.nix
   ./zetcd.nix
+  ./kibana.nix
 ]

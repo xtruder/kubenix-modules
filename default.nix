@@ -49,5 +49,9 @@ in {
     zetcd = kubenix.buildResources {
       configuration = ./test/zetcd.nix;
     };
+
+    kibana = kubenix.buildResources {
+      configuration = ./test/kibana.nix;
+    };
   };
 }
