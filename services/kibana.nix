@@ -36,7 +36,7 @@ with lib;
 
         port = mkOption {
           description = "Elasticsearch port";
-          default = 443;
+          default = 9200;
           type = types.int;
         };
 
