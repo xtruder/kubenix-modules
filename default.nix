@@ -53,5 +53,9 @@ in {
     kibana = kubenix.buildResources {
       configuration = ./test/kibana.nix;
     };
+
+    parity = kubenix.buildResources {
+      configuration = ./test/parity.nix;
+    };
   };
 }

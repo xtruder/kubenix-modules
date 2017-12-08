@@ -10,4 +10,5 @@
   ./rippled.nix
   ./zetcd.nix
   ./kibana.nix
+  ./parity.nix
 ]
