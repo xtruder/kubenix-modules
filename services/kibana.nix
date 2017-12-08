@@ -75,7 +75,6 @@ with lib;
                 ports = [{ containerPort = 5601; }];
 
                 resources.requests.memory = "512Mi";
-                resources.limits.memory = "512Mi";
               };
             };
           };
