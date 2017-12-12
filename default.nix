@@ -57,5 +57,9 @@ in {
     parity = kubenix.buildResources {
       configuration = ./test/parity.nix;
     };
+
+    beehive = kubenix.buildResources {
+      configuration = ./test/beehive.nix;
+    };
   };
 }

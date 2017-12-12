@@ -11,4 +11,5 @@
   ./zetcd.nix
   ./kibana.nix
   ./parity.nix
+  ./beehive.nix
 ]
