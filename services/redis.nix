@@ -716,6 +716,7 @@ in {
         metadata.labels.app = "${name}-proxy";
         spec = {
           replicas = config.proxy.replicas;
+          selector.matchLabels.app = "${name}-proxy";
           template = {
             metadata.labels.app = "${name}-proxy";
             spec = {
@@ -802,6 +803,7 @@ in {
         metadata.labels.app = "${name}-sentinel";
         spec = {
           replicas = config.sentinel.replicas;
+          selector.matchLabels.app = "${name}-proxy";
           template = {
             metadata.labels.app = "${name}-sentinel";
             spec = {
