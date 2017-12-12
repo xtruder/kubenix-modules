@@ -63,6 +63,7 @@ with lib;
           port = 80;
           targetPort = 8181;
         }] ++ map (port: {
+          name = "${toString port}";
           port = port;
           targetPort = port;
         }) config.extraPorts;
