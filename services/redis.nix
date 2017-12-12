@@ -803,7 +803,7 @@ in {
         metadata.labels.app = "${name}-sentinel";
         spec = {
           replicas = config.sentinel.replicas;
-          selector.matchLabels.app = "${name}-proxy";
+          selector.matchLabels.app = "${name}-sentinel";
           template = {
             metadata.labels.app = "${name}-sentinel";
             spec = {
