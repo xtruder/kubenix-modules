@@ -5,5 +5,7 @@
 
   kubernetes.modules.beehive = {
     module = "beehive";
+
+    configuration.extraPorts = [65100];
   };
 }

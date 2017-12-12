@@ -10,6 +10,13 @@ with lib;
         type = types.str;
         default = "xtruder/beehive";
       };
+
+      extraPorts = mkOption {
+        description = "Extra beehive exposed TCP ports";
+        example = [65000];
+        type = types.listOf types.int;
+        default = [];
+      };
     };
 
     config = {
@@ -34,7 +41,9 @@ with lib;
                   mountPath = "/conf";
                 }];
 
-                ports = [{containerPort = 8181;}];
+                ports = [{
+                  containerPort = 8181;
+                }] ++ map (port: {containerPort = port;}) config.extraPorts;
               };
 
               volumes.config.persistentVolumeClaim.claimName = name;
@@ -53,7 +62,10 @@ with lib;
           name = "http";
           port = 80;
           targetPort = 8181;
-        }];
+        }] ++ map (port: {
+          port = port;
+          targetPort = port;
+        }) config.extraPorts;
       };
 
       kubernetes.resources.persistentVolumeClaims.beehive.spec = {
