@@ -98,6 +98,11 @@ ${config.extraConfig}
       cpu = "2000m";
       memory = "16000Mi";
     };
+
+    huge = {
+      cpu = "4000m";
+      memory = "24000Mi";
+    };
   };
 
   in {
@@ -131,7 +136,7 @@ ${config.extraConfig}
       nodeSize = mkOption {
         description = "Rippled node size";
         default = "small";
-        type = types.enum ["small" "medium" "large"];
+        type = types.enum ["small" "medium" "large" "huge"];
       };
 
       validationSeed = mkOption {
