@@ -24,14 +24,14 @@ with k8s;
         default = "guest";
       };
 
-      defaultPassword = mkValueOrSecretOption {
+      defaultPassword = mkSecretOption {
         description = "Default rabbitmq password";
-        default = "guest";
+        default.key = "password";
       };
 
-      erlangCookie = mkValueOrSecretOption {
+      erlangCookie = mkSecretOption {
         description = "Rabbitmq erlang cookie secret";
-        default = "secret";
+        default.key = "cookie";
       };
 
       storage = {

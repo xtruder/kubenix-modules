@@ -9,7 +9,7 @@ with k8s;
       image = mkOption {
         description = "Docker image to use";
         type = types.str;
-        default = "mariadb:10.2.10@sha256:e5d38bf55611af632fad0674b2b0219dae5797845da322df78aabdfbf71ec45a";
+        default = "mariadb:10.3";
       };
 
       metricsImage = mkOption {
@@ -24,8 +24,9 @@ with k8s;
         description = "Number of mysql replicas";
       };
 
-      rootPassword = mkValueOrSecretOption {
+      rootPassword = mkSecretOption {
         description = "Root password";
+        default.key = "password";
       };
 
       database = mkOption {
@@ -40,7 +41,7 @@ with k8s;
         default = null;
       };
 
-      password = mkValueOrSecretOption {
+      password = mkSecretOption {
         description = "Database password";
         default = null;
       };
