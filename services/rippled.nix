@@ -165,6 +165,7 @@ ${config.extraConfig}
         spec = {
           replicas = config.replicas;
           serviceName = name;
+          podManagementPolicy = "Parallel";
           template = {
             metadata.labels.app = name;
             spec = {
