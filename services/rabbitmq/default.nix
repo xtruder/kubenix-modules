@@ -68,8 +68,8 @@ with k8s;
             image = config.image;
             env = {
               RABBITMQ_DEFAULT_USER.value = config.defaultUser;
-              RABBITMQ_DEFAULT_PASS = config.defaultPassword;
-              RABBITMQ_ERLANG_COOKIE = config.erlangCookie;
+              RABBITMQ_DEFAULT_PASS = secretToEnv config.defaultPassword;
+              RABBITMQ_ERLANG_COOKIE = secretToEnv config.erlangCookie;
               APP_NAME.value = name;
             };
             volumeMounts.storage = mkIf config.storage.enable {
@@ -79,8 +79,8 @@ with k8s;
           };
           spec.template.spec.containers.rabbitmq-prom-exporter = {
             env = {
-              RABBIT_PASSWORD = config.defaultPassword;
-							RABBIT_USER.value = config.defaultUser;
+              RABBIT_PASSWORD = secretToEnv config.defaultPassword;
+              RABBIT_USER.value = config.defaultUser;
             };
           };
           spec.volumeClaimTemplates = mkIf config.storage.enable [{
