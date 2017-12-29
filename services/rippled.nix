@@ -100,7 +100,7 @@ ${config.extraConfig}
     };
 
     huge = {
-      cpu = "4000m";
+      cpu = "2000m";
       memory = "24000Mi";
     };
   };
