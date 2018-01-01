@@ -12,4 +12,5 @@
   ./kibana.nix
   ./parity.nix
   ./beehive.nix
+  ./minio.nix
 ]

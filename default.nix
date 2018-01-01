@@ -61,5 +61,9 @@ in {
     beehive = kubenix.buildResources {
       configuration = ./test/beehive.nix;
     };
+
+    minio = kubenix.buildResources {
+      configuration = ./test/minio.nix;
+    };
   };
 }
