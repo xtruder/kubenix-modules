@@ -62,6 +62,10 @@ in {
       configuration.imports = [./test/parity.nix globalConfig];
     };
 
+    mediawiki = kubenix.buildResources {
+      configuration.imports = [./test/mediawiki.nix globalConfig];
+    };
+
     beehive = kubenix.buildResources {
       configuration.imports = [./test/beehive.nix globalConfig];
     };
