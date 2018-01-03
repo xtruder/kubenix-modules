@@ -6,64 +6,68 @@ let
   kubenix = import (builtins.fetchGit {
     url = "https://github.com/xtruder/kubenix.git";
   }) { inherit pkgs; };
+
+  globalConfig = {
+    config.kubernetes.version = "1.9";
+  };
 in {
   services = import ./services/module-list.nix;
 
   tests = {
     rabbitmq = kubenix.buildResources {
-      configuration = ./test/rabbitmq.nix;
+      configuration.imports = [./test/rabbitmq.nix globalConfig];
     };
 
     elasticsearch = kubenix.buildResources {
-      configuration = ./test/elasticsearch.nix;
+      configuration.imports = [./test/elasticsearch.nix globalConfig];
     };
 
     elasticsearch-curator = kubenix.buildResources {
-      configuration = ./test/elasticsearch-curator.nix;
+      configuration.imports = [./test/elasticsearch-curator.nix globalConfig];
     };
 
     redis = kubenix.buildResources {
-      configuration = ./test/redis.nix;
+      configuration.imports = [./test/redis.nix globalConfig];
     };
 
     nginx = kubenix.buildResources {
-      configuration = ./test/nginx.nix;
+      configuration.imports = [./test/nginx.nix globalConfig];
     };
 
     galera = kubenix.buildResources {
-      configuration = ./test/galera.nix;
+      configuration.imports = [./test/galera.nix globalConfig];
     };
 
     etcd = kubenix.buildResources {
-      configuration = ./test/etcd.nix;
+      configuration.imports = [./test/etcd.nix globalConfig];
     };
 
     deployer = kubenix.buildResources {
-      configuration = ./test/deployer.nix;
+      configuration.imports = [./test/deployer.nix globalConfig];
     };
 
     rippled = kubenix.buildResources {
-      configuration = ./test/rippled.nix;
+      configuration.imports = [./test/rippled.nix globalConfig];
     };
 
     zetcd = kubenix.buildResources {
-      configuration = ./test/zetcd.nix;
+      configuration.imports = [./test/zetcd.nix globalConfig];
     };
 
     kibana = kubenix.buildResources {
-      configuration = ./test/kibana.nix;
+      configuration.imports = [./test/kibana.nix globalConfig];
     };
 
     parity = kubenix.buildResources {
-      configuration = ./test/parity.nix;
+      configuration.imports = [./test/parity.nix globalConfig];
     };
 
     beehive = kubenix.buildResources {
-      configuration = ./test/beehive.nix;
+      configuration.imports = [./test/beehive.nix globalConfig];
     };
 
     minio = kubenix.buildResources {
-      configuration = ./test/minio.nix;
+      configuration.imports = [./test/minio.nix globalConfig];
     };
   };
 }
