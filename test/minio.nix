@@ -14,6 +14,15 @@ with k8s;
     };
   };
 
+  kubernetes.modules.etcd-operator = {
+    module = "etcd-operator";
+  };
+
+  kubernetes.modules.etcd = {
+    module = "etcd-cluster";
+    configuration.size = 1;
+  };
+
   kubernetes.modules.deployer = {
     module = "deployer";
     configuration = {
@@ -28,6 +37,13 @@ with k8s;
       configuration = {
         variable.s3_access_key.type = "string";
         variable.s3_secret_key.type = "string";
+
+        terraform.backend.etcdv3 = {
+          endpoints = ["http://etcd-client:2379"];
+          prefix = "terraform-state/";
+          lock = true;
+        };
+
         provider.s3 = {
           s3_server = "minio:9000";
           s3_region = "us-east-1";
