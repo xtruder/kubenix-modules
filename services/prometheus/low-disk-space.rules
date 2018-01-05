@@ -1,0 +1,10 @@
+ALERT NodeLowRootDisk
+  IF ((node_filesystem_size{mountpoint=~"/host/.*"} - node_filesystem_free{mountpoint=~"/host/.*"} ) / node_filesystem_size{mountpoint=~"/host.*"} * 100) > 75
+  FOR 2m
+  LABELS {
+    severity="warning"
+  }
+  ANNOTATIONS {
+    SUMMARY = "{{$labels.instance}}: Low root disk space",
+    DESCRIPTION = "{{$labels.instance}}: Root disk usage is above 75% (current value is: {{ $value }})"
+  }

@@ -13,4 +13,7 @@
   ./parity.nix
   ./beehive.nix
   ./minio.nix
+  ./prometheus.nix
+  ./grafana.nix
+  ./prometheus-kubernetes.nix
 ]

@@ -7,11 +7,19 @@ let
     url = "https://github.com/xtruder/kubenix.git";
   }) { inherit pkgs; };
 
-  globalConfig = {
+  globalConfig = {config, ...}: {
     config.kubernetes.version = "1.9";
+
+    config.kubernetes.defaultModuleConfiguration.all = {
+      config.kubernetes.moduleDefinitions = config.kubernetes.moduleDefinitions;
+    };
   };
 in {
-  services = import ./services/module-list.nix;
+  services = import ./services/module-list.nix ++ [({config, ...}: {
+    kubernetes.defaultModuleConfiguration.all = {
+      config.kubernetes.moduleDefinitions = config.kubernetes.moduleDefinitions;
+    };
+  })];
 
   tests = {
     rabbitmq = kubenix.buildResources {
@@ -72,6 +80,18 @@ in {
 
     minio = kubenix.buildResources {
       configuration.imports = [./test/minio.nix globalConfig];
+    };
+
+    prometheus = kubenix.buildResources {
+      configuration.imports = [./test/prometheus.nix globalConfig];
+    };
+
+    prometheus-kubernetes = kubenix.buildResources {
+      configuration.imports = [./test/prometheus-kubernetes.nix globalConfig];
+    };
+
+    grafana = kubenix.buildResources {
+      configuration.imports = [./test/grafana.nix globalConfig];
     };
   };
 }
