@@ -11,6 +11,12 @@ with lib;
         default = "xtruder/beehive";
       };
 
+      url = mkOption {
+        description = "Beehive url where frontend is exposed";
+        type = types.str;
+        default = "http://beehive";
+      };
+
       extraPorts = mkOption {
         description = "Extra beehive exposed TCP ports";
         example = [65000];
@@ -35,6 +41,8 @@ with lib;
             spec = {
               containers.beehive = {
                 image = config.image;
+
+                args = ["beehive" "-canonicalurl" config.url];
 
                 volumeMounts = [{
                   name = "config";
