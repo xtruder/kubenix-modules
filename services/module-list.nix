@@ -4,7 +4,6 @@
   ./elasticsearch-curator.nix
   ./redis.nix
   ./nginx.nix
-  ./galera/default.nix
   ./deployer.nix
   ./etcd.nix
   ./rippled.nix
@@ -16,4 +15,5 @@
   ./prometheus.nix
   ./grafana.nix
   ./prometheus-kubernetes.nix
+  ./galera.nix
 ]
