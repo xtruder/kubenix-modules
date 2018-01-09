@@ -34,6 +34,12 @@ with k8s;
         };
         default = {};
       };
+
+      vars = mkOption {
+        description = "Additional environment variables to set";
+        type = types.attrsOf types.attrs;
+        default = {};
+      };
     };
 
     config = {
@@ -45,9 +51,10 @@ with k8s;
           spec = {
             containers.deployer = {
               image = config.image;
+              imagePullPolicy = "Always";
               env = {
-                EXIT_ON_ERROR = mkIf config.exitOnError "1";
-              };
+                EXIT_ON_ERROR = mkIf config.exitOnError {value = "1";};
+              } // mapAttrs' (name: value: nameValuePair "TF_VAR_${name}" value) config.vars;
               volumeMounts = [{
                 name = "resources";
                 mountPath = "/usr/local/deployer/inputs";
