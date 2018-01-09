@@ -7,6 +7,47 @@ let
   hasModuleType = type:
     (filterAttrs (name: config: config.module == type) config.kubernetes.modules) != {};
 in mkMerge [{
+  kubernetes.moduleDefinitions.etcd-backup.module = {name, config, ...}: {
+    options = {
+      etcdEndpoints = mkOption {
+        description = "Etcd endpoints";
+        type = types.listOf types.str;
+      };
+
+      storageType = mkOption {
+        description = "Backup stroage type";
+        type = types.enum ["S3"];
+        default = "S3";
+      };
+
+      s3 = {
+        path = mkOption {
+          description = "Full S3 path";
+          type = types.str;
+        };
+
+        awsSecret = mkOption {
+          description = "AWS secret for backup";
+          type = types.str;
+        };
+      };
+    };
+
+    config = {
+      kubernetes.customResources.etcdbackups.etcd-backup = {
+        metadata.name = name;
+        spec = {
+          etcdEndpoints = concatStringsSep "," config.etcdEndpoints;
+          storageType = config.storageType;
+          s3 = mkIf (cfg.storageType == "S3") {
+            path = config.s3.path;
+            awsSecret = config.s3.awsSecret;
+          };
+        };
+      };
+    };
+  };
+
   kubernetes.moduleDefinitions.etcd-cluster.module = {name, config, ...}: {
     options = {
       size = mkOption {
@@ -20,76 +61,45 @@ in mkMerge [{
         type = types.str;
         default = "3.1.8";
       };
-
-      namespace = mkOption {
-        description = "Namespace where to deploy etcd cluster";
-        type = types.str;
-        default = "default";
-      };
-
-      backup = {
-        interval = mkOption {
-          description = "Backup interval in seconds";
-          type = types.int;
-          default = 30;
-        };
-
-        maxBackups = mkOption {
-          description = "Number of backups to keep";
-          type = types.int;
-          default = 5;
-        };
-
-        storageType = mkOption {
-          description = "Type of the storage";
-          type = types.enum ["S3"];
-          default = "S3";
-        };
-      };
     };
 
     config = {
       kubernetes.customResources.etcdclusters.etcd-cluster = {
         metadata.name = name;
-        metadata.namespace = config.namespace;
         spec = {
           size = config.size;
           version = config.version;
-          backup = {
-            backupIntervalInSecond = config.backup.interval;
-            maxBackups = config.backup.maxBackups;
-            storageType = config.backup.storageType;
-          };
         };
       };
     };
   };
 
-  kubernetes.moduleDefinitions.etcd-operator.module = {name, config, ...}: {
+  kubernetes.moduleDefinitions.etcd-operator.module = {name, config, module, ...}: {
     options = {
       image = mkOption {
         description = "Name of the etcd-operator image to deploy";
         type = types.str;
-        default = "quay.io/coreos/etcd-operator:v0.7.0";
+        default = "quay.io/coreos/etcd-operator:v0.7.2";
       };
 
-      namespace = mkOption {
-        description = "Namespace where to deploy etcd operator";
-        type = types.str;
-        default = "default";
+      backup = {
+        enable = mkEnableOption "Backup operator";
+      };
+
+      restore = {
+        enable = mkEnableOption "Restore operator";
       };
     };
 
     config = {
       kubernetes.resources.deployments.etcd-operator = {
         metadata.name = "etcd-operator";
-        metadata.namespace = config.namespace;
         metadata.labels.app = "etcd-operator";
         spec = {
           replicas = 1;
+          selector.matchLabels.app = "etcd-operator";
           template = {
             metadata.labels.app = "etcd-operator";
-            metadata.labels.name = name;
             spec.containers.etcd-operator = {
               image = config.image;
               command = ["etcd-operator"];
@@ -102,15 +112,14 @@ in mkMerge [{
         };
       };
 
-      kubernetes.resources.deployments.etcd-backup-operator = {
+      kubernetes.resources.deployments.etcd-backup-operator = mkIf config.backup.enable {
         metadata.name = "etcd-backup-operator";
-        metadata.namespace = config.namespace;
         metadata.labels.app = "etcd-backup-operator";
         spec = {
           replicas = 1;
+          selector.matchLabels.app = "etcd-backup-operator";
           template = {
             metadata.labels.app = "etcd-backup-operator";
-            metadata.labels.name = name;
             spec.containers.etcd-backup-operator = {
               image = config.image;
               imagePullPolicy = "Always";
@@ -124,15 +133,14 @@ in mkMerge [{
         };
       };
 
-      kubernetes.resources.deployments.etcd-restore-operator = {
+      kubernetes.resources.deployments.etcd-restore-operator = mkIf config.restore.enable {
         metadata.name = "etcd-restore-operator";
-        metadata.namespace = config.namespace;
         metadata.labels.app = "etcd-restore-operator";
         spec = {
           replicas = 1;
+          selector.matchLabels.app = "etcd-restore-operator";
           template = {
             metadata.labels.app = "etcd-restore-operator";
-            metadata.labels.name = name;
             spec.containers.etcd-backup-operator = {
               image = config.image;
               imagePullPolicy = "Always";
@@ -149,7 +157,6 @@ in mkMerge [{
 
       kubernetes.resources.services.etcd-restore-operator = {
         metadata.name = "etcd-restore-operator";
-        metadata.namespace = config.namespace;
         spec = {
           selector.app = "etcd-restore-operator";
           ports = [{
@@ -162,7 +169,6 @@ in mkMerge [{
       kubernetes.resources.roleBindings.etcd = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = name;
-        metadata.namespace = config.namespace;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
           kind = "Role";
@@ -171,14 +177,13 @@ in mkMerge [{
         subjects = [{
           kind = "ServiceAccount";
           name = "default";
-          namespace = config.namespace;
+          namespace = module.namespace;
         }];
       };
 
       kubernetes.resources.roles.etcd = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = name;
-        metadata.namespace = config.namespace;
         rules = [{
           apiGroups = ["etcd.database.coreos.com"];
           resources = [

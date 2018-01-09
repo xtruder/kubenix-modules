@@ -9,5 +9,6 @@
 
   kubernetes.modules.etcd = {
     module = "etcd-cluster";
+    configuration.size = 3;
   };
 }
