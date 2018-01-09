@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, k8s, ... }:
 
 {
   require = import ../services/module-list.nix;
@@ -17,14 +17,19 @@
 
     configuration = {
       storage.enable = true;
-      rootPassword = "root";
+      rootPassword.name = "galera";
       replicas = 1;
     };
   };
 
+  kubernetes.resources.secrets.mysql.secrets.password = k8s.toBase64 "root";
+
   kubernetes.modules.mysql-databases = {
     module = "deployer";
 
+    configuration.vars = {
+      MYSQL_ROOT_PASSWORD.value = "root";
+    };
     configuration.configuration = {
       provider.mysql = {
         endpoint = "galera:3306";
@@ -47,6 +52,7 @@
 
       resource.mysql_grant.fourstop = {
         user = "fourstop";
+        host = "%";
         database = "fourstop";
         privileges = ["ALL"];
       };
