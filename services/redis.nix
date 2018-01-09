@@ -746,8 +746,20 @@ in {
           replicas = config.nodes.replicas;
           template = {
             metadata.labels.app = "${name}-node";
+            metadata.annotations = {
+              "prometheus.io/scrape" = "true";
+              "prometheus.io/port" = "9121";
+            };
 
             spec = {
+              containers.metrics = {
+                image = "oliver006/redis_exporter";
+                ports = [{
+                  name = "metrics";
+                  containerPort = 9121;
+                }];
+              };
+
               containers.redis = {
                 command = ["bash" "-c" ''
                   [[ `hostname` =~ -([0-9]+)$  ]] || exit 1
