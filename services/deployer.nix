@@ -9,7 +9,7 @@ with k8s;
       image = mkOption {
         description = "Deployer image to use";
         type = types.str;
-        default = "matejc/deployer:latest";
+        default = "xtruder/deployer:latest";
       };
 
       exitOnError = mkOption {
