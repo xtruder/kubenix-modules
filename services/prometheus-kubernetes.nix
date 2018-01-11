@@ -3,7 +3,8 @@
 {
   config.kubernetes.moduleDefinitions.prometheus-kubernetes.module = {name, config, module, ...}: {
     config = {
-      kubernetes.modules."${name}-prometheus" = {
+      kubernetes.modules.prometheus = {
+        name = "${name}-prometheus";
         module = "prometheus";
         namespace = module.namespace;
         configuration = {
@@ -211,7 +212,8 @@
         };
       };
 
-      kubernetes.modules."${name}-prometheus-alertmanager" = {
+      kubernetes.modules.prometheus-alertmanager = {
+        name = "${name}-prometheus-alertmanager";
         module = "prometheus-alertmanager";
         namespace = module.namespace;
         configuration = {
@@ -220,7 +222,8 @@
         };
       };
 
-      kubernetes.modules."${name}-grafana" = {
+      kubernetes.modules.grafana = {
+        name = "${name}-grafana";
         module = "grafana";
         namespace = module.namespace;
         configuration.dashboards = {
