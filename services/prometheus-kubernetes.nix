@@ -242,7 +242,8 @@
         };
       };
 
-      kubernetes.modules."${name}-prometheus-node-exporter" = {
+      kubernetes.modules.prometheus-node-exporter = {
+        name = "${name}-prometheus-node-exporter";
         module = "prometheus-node-exporter";
         namespace = module.namespace;
       };
