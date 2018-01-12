@@ -16,4 +16,5 @@
   ./grafana.nix
   ./prometheus-kubernetes.nix
   ./galera.nix
+  ./kube-lego.nix
 ]

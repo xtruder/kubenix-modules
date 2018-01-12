@@ -93,5 +93,9 @@ in {
     grafana = kubenix.buildResources {
       configuration.imports = [./test/grafana.nix globalConfig];
     };
+
+    kube-lego-gce = kubenix.buildResources {
+      configuration.imports = [./test/kube-lego-gce.nix globalConfig];
+    };
   };
 }
