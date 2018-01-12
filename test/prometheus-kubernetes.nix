@@ -14,7 +14,7 @@ with k8s;
 
     configuration = {
       kubernetes.modules.grafana.configuration = {
-        rootUrl = "http://prometybheus-kubernetes-grafana.monitoring.svc.cluster.local/";
+        rootUrl = "http://prometheus-kubernetes-grafana.monitoring.svc.cluster.local/";
         adminPassword.name = "grafana-user";
         db.type = "sqlite3";
       };
