@@ -31,6 +31,7 @@ with lib;
         metadata.labels.app = name;
         spec = {
           replicas = config.replicas;
+          selector.matchLabels.app = name;
           template = {
             metadata.labels.app = name;
             spec = {
