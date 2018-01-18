@@ -309,6 +309,7 @@ with lib;
         metadata.name = name;
         metadata.labels.app = name;
         metadata.annotations."prometheus.io/probe" = "pushgateway";
+        metadata.annotations."prometheus.io/scrape" = "true";
         spec = {
           ports = [{
             name = "prometheus-push";
