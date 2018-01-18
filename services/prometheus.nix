@@ -260,7 +260,7 @@ with lib;
       replicas = mkOption {
         description = "Number of prometheus gateway replicas";
         type = types.int;
-        default = 2;
+        default = 1;
       };
     };
 
