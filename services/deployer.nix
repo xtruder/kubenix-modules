@@ -46,6 +46,7 @@ with k8s;
       kubernetes.resources.deployments.deployer = {
         metadata.name = name;
         metadata.labels.app = name;
+        spec.selector.matchLabels.app = name;
         spec.template = {
           metadata.labels.app = name;
           spec = {
