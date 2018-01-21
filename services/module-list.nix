@@ -5,7 +5,7 @@
   ./redis.nix
   ./nginx.nix
   ./deployer.nix
-  ./etcd.nix
+  ./etcd-operator.nix
   ./rippled.nix
   ./zetcd.nix
   ./kibana.nix

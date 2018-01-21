@@ -46,8 +46,8 @@ in {
       configuration.imports = [./test/galera.nix globalConfig];
     };
 
-    etcd = kubenix.buildResources {
-      configuration.imports = [./test/etcd.nix globalConfig];
+    etcd-operator = kubenix.buildResources {
+      configuration.imports = [./test/etcd-operator.nix globalConfig];
     };
 
     deployer = kubenix.buildResources {
