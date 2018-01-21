@@ -97,5 +97,9 @@ in {
     kube-lego-gce = kubenix.buildResources {
       configuration.imports = [./test/kube-lego-gce.nix globalConfig];
     };
+
+    etcd = kubenix.buildResources {
+      configuration.imports = [./test/etcd.nix globalConfig];
+    };
   };
 }

@@ -6,6 +6,7 @@
   ./nginx.nix
   ./deployer.nix
   ./etcd-operator.nix
+  ./etcd.nix
   ./rippled.nix
   ./zetcd.nix
   ./kibana.nix
