@@ -18,4 +18,5 @@
   ./prometheus-kubernetes.nix
   ./galera.nix
   ./kube-lego.nix
+  ./pachyderm.nix
 ]

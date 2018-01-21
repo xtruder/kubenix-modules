@@ -98,6 +98,10 @@ in {
       configuration.imports = [./test/kube-lego-gce.nix globalConfig];
     };
 
+    pachyderm = kubenix.buildResources {
+      configuration.imports = [./test/pachyderm.nix globalConfig];
+    };
+
     etcd = kubenix.buildResources {
       configuration.imports = [./test/etcd.nix globalConfig];
     };
