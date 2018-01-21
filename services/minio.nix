@@ -199,20 +199,20 @@ with lib;
                   fieldRef.fieldPath = "metadata.labels";
                 }];
               };
-              containers.metrics = {
-                image = "joepll/minio-exporter";
-                imagePullPolicy = "Always";
-                args = ["-minio.bucket-stats"];
-                env = {
-                  MINIO_URL.value = "http://localhost:9000";
-                  MINIO_ACCESS_KEY = secretToEnv config.accessKey;
-                  MINIO_SECRET_KEY = secretToEnv config.secretKey;
-                };
-                ports = [{
-                  name = "metrics";
-                  containerPort = 9290;
-                }];
-              };
+              #containers.metrics = {
+                #image = "joepll/minio-exporter";
+                #imagePullPolicy = "Always";
+                #args = ["-minio.bucket-stats"];
+                #env = {
+                  #MINIO_URL.value = "http://localhost:9000";
+                  #MINIO_ACCESS_KEY = secretToEnv config.accessKey;
+                  #MINIO_SECRET_KEY = secretToEnv config.secretKey;
+                #};
+                #ports = [{
+                  #name = "metrics";
+                  #containerPort = 9290;
+                #}];
+              #};
               containers.minio = {
                 image = config.image;
                 imagePullPolicy = "Always";
