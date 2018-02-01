@@ -105,5 +105,9 @@ in {
     etcd = kubenix.buildResources {
       configuration.imports = [./test/etcd.nix globalConfig];
     };
+
+    local-volume-provisioner = kubenix.buildResources {
+      configuration.imports = [./test/local-volume-provisioner.nix globalConfig];
+    };
   };
 }
