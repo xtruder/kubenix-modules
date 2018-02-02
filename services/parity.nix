@@ -126,12 +126,11 @@ with lib;
                 ports = [
                   { containerPort = 8545; }
                   { containerPort = config.peerPort; }
-                  { containerPort = 3000; }
                 ];
                 readinessProbe = {
                   httpGet = {
-                    path = "/";
-                    port = 3000;
+                    path = "/api/status";
+                    port = 8545;
                   };
                   initialDelaySeconds = 30;
                   timeoutSeconds = 30;
@@ -139,16 +138,16 @@ with lib;
                 securityContext.capabilities.add = ["NET_ADMIN"];
               };
 
-              containers.status = {
-                image = "gatehub/ethmonitor";
-                imagePullPolicy = "IfNotPresent";
+              #containers.status = {
+                #image = "gatehub/ethmonitor";
+                #imagePullPolicy = "IfNotPresent";
 
-                resources = {
-                  requests.memory = "100Mi";
-                  limits.memory = "100Mi";
-                  requests.cpu = "20m";
-                };
-              };
+                #resources = {
+                  #requests.memory = "100Mi";
+                  #limits.memory = "100Mi";
+                  #requests.cpu = "20m";
+                #};
+              #};
             };
           };
           volumeClaimTemplates = [{
@@ -176,9 +175,6 @@ with lib;
             name = "p2p";
             port = config.peerPort;
             nodePort = config.peerPort;
-          } {
-            name = "health";
-            port = 3000;
           }];
         };
       };
