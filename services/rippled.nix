@@ -90,17 +90,17 @@ ${config.extraConfig}
     };
 
     medium = {
-      cpu = "1000m";
+      cpu = "4000m";
       memory = "8000Mi";
     };
 
     large = {
-      cpu = "2000m";
+      cpu = "6000m";
       memory = "16000Mi";
     };
 
     huge = {
-      cpu = "2000m";
+      cpu = "7000m";
       memory = "24000Mi";
     };
   };
