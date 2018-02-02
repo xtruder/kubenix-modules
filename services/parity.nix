@@ -129,7 +129,7 @@ with lib;
                 ];
                 readinessProbe = {
                   httpGet = {
-                    path = "/api/status";
+                    path = "/api/health";
                     port = 8545;
                   };
                   initialDelaySeconds = 30;
