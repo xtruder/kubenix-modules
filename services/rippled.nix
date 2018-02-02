@@ -45,14 +45,21 @@ file_size_mb=8
 file_size_mult=2
 
 [ips]
-r.ripple.com 51235
+54.84.21.230 51235
+54.86.175.122 51235
+54.186.248.91 51235
+54.186.73.52 51235
+184.173.45.38 51235
+198.11.206.26 51235
+169.55.164.29 51235
+174.37.225.41 51235
 
 [validators]
-n949f75evCHwgyP4fPVgaHqNHxUVN15PsJEZ3B3HnXPcPjcZAoy7  RL1
-n9MD5h24qrQqiyBC8aeqqCWvpiBiYQ3jxSr91uiDvmrkyHRdYLUj  RL2
-n9L81uNCaPgtUJfaHh89gmdvXKAmSt5Gdsw2g1iPWaPkAHW5Nm4C  RL3
-n9KiYM9CgngLvtRCQHZwgC2gjpdaZcCcbt3VboxiNFcKuwFVujzS  RL4
-n9LdgEtkmGB9E2h3K4Vp7iGUaKuq23Zr32ehxiU8FWY7xoxbWTSA  RL5
+nHB1FqfBpNg7UTpiqEUkKcAiWqC2PFuoGY7FPWtCcXAxSkhpqDkm	RL1
+nHUpwrafS45zmi6eT72XS5ijpkW5JwfL5mLdPhEibrqUvtRcMAjU	RL2
+nHUBGitjsiaiMJBWKYsJBHU2shmYt9m29hRqoh8AS5bSAjXoHmdd	RL3
+nHUXh1ELizQ5QLLqtNaVEbbbfMdq3wMkh14aJo5xi83xzzaatWWP	RL4
+nHUgoJvpqXZMZwxh8ZoFseFJEVF8ryup9r2mFYchX7ftMdNn3jLT	RL4
 
 ${optionalString (config.validationSeed != null) ''
 [validation_seed]
