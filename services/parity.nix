@@ -126,6 +126,7 @@ with lib;
                 ports = [
                   { containerPort = 8545; }
                   { containerPort = config.peerPort; }
+                  { containerPort = 3000; }
                 ];
                 readinessProbe = {
                   httpGet = {
@@ -175,6 +176,9 @@ with lib;
             name = "p2p";
             port = config.peerPort;
             nodePort = config.peerPort;
+          } {
+            name = "health";
+            port = 3000;
           }];
         };
       };
