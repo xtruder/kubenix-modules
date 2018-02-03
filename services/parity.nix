@@ -113,17 +113,6 @@ with lib;
                 };
                 securityContext.capabilities.add = ["NET_ADMIN"];
               };
-
-              #containers.status = {
-                #image = "gatehub/ethmonitor";
-                #imagePullPolicy = "IfNotPresent";
-
-                #resources = {
-                  #requests.memory = "100Mi";
-                  #limits.memory = "100Mi";
-                  #requests.cpu = "20m";
-                #};
-              #};
             };
           };
           volumeClaimTemplates = [{
