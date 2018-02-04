@@ -84,7 +84,6 @@ with lib;
                   "--chain=${config.chain}"
                   "--jsonrpc-hosts=${concatStringsSep "," config.jsonrpc.hosts}"
                   "--port=${toString config.peerPort}"
-                  "--warp"
                   "--allow-ips=public"
                   "--max-pending-peers=32"
                 ];
