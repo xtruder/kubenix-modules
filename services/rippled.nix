@@ -183,6 +183,14 @@ ${config.extraConfig}
                 resources.requests = resources.${config.nodeSize};
                 resources.limits = resources.${config.nodeSize};
 
+                readinessProbe = {
+                  exec.command = ["/bin/sh" "-c" ''
+                    /opt/ripple/bin/rippled server_info | grep complete_ledgers | grep -v empty
+                  ''];
+                  initialDelaySeconds = 60;
+                  periodSeconds = 30;
+                };
+
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/etc/rippled";
