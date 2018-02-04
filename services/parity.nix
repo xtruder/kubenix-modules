@@ -89,9 +89,9 @@ with lib;
                 ];
 
                 resources = {
-                  requests.cpu = "1000m";
+                  requests.cpu = "4000m";
                   requests.memory = "4000Mi";
-                  limits.cpu = "4000Mi";
+                  limits.cpu = "4000m";
                   limits.memory = "4000Mi";
                 };
                 volumeMounts = [{
