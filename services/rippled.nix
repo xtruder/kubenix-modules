@@ -92,7 +92,7 @@ ${config.extraConfig}
 
   resources = {
     small = {
-      cpu = "500m";
+      cpu = "1000m";
       memory = "2000Mi";
     };
 
@@ -129,7 +129,7 @@ ${config.extraConfig}
       storage = {
         size = mkOption {
           description = "Rippled storage size";
-          default = "69G";
+          default = "100G";
           type = types.str;
         };
 
