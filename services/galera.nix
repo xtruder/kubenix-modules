@@ -49,12 +49,12 @@ with k8s;
 
         user = mkSecretOption {
           description = "Mysql user to pre-create";
-          default.key = "username";
+          default = null;
         };
 
         password = mkSecretOption {
           description = "Mysql password to pre-create";
-          default.key = "password";
+          default = null;
         };
       };
 
@@ -105,8 +105,8 @@ with k8s;
                   XTRABACKUP_PASSWORD = secretToEnv config.xtrabackupPassword;
                   CLUSTER_NAME.value = config.clusterName;
                   MYSQL_DATABASE.value = config.mysql.database;
-                  MYSQL_USER = secretToEnv config.mysql.user;
-                  MYSQL_PASSWORD = secretToEnv config.mysql.password;
+                  MYSQL_USER = mkIf (config.mysql.user != null) (secretToEnv config.mysql.user);
+                  MYSQL_PASSWORD = mkIf (config.mysql.password != null) (secretToEnv config.mysql.password);
                 };
                 ports = [{
                   name = "mysql";
