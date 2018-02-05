@@ -5,5 +5,6 @@
 
   kubernetes.modules.redis = {
     module = "redis";
+    configuration.password = "test";
   };
 }
