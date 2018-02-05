@@ -598,7 +598,7 @@ with lib;
       #
       # Please check http://redis.io/topics/persistence for more information.
 
-      ${b2s config.appendonly}
+      appendonly ${b2s config.appendonly}
 
       # The name of the append only file (default: "appendonly.aof")
 
