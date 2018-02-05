@@ -5,6 +5,7 @@ with lib;
 
 {
   config.kubernetes.moduleDefinitions.redis.module = {name, config, ...}: let
+    b2s = value: if value then "yes" else "no";
     shared = ''
       # Redis configuration file example.
       #
@@ -597,7 +598,7 @@ with lib;
       #
       # Please check http://redis.io/topics/persistence for more information.
 
-      appendonly yes
+      ${b2s config.appendonly}
 
       # The name of the append only file (default: "appendonly.aof")
 
@@ -656,6 +657,12 @@ with lib;
         description = "Redis password";
         type = types.str;
         default = "";
+      };
+
+      appendonly = mkOption {
+        description = "Whether to append to file";
+        type = types.bool;
+        default = true;
       };
 
       nodes.replicas = mkOption {
