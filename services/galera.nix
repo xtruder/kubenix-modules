@@ -26,7 +26,7 @@ with k8s;
       discoveryService = mkOption {
         description = "Etcd discovery service";
         type = types.str;
-        default = "etcd-client:2379";
+        default = "etcd:2379";
       };
 
       xtrabackupPassword = mkSecretOption {
