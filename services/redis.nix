@@ -650,7 +650,7 @@ with lib;
       image = mkOption {
         description = "Name of the redis image to use";
         type = types.str;
-        default = "redis:3.2";
+        default = "redis:4";
       };
 
       password = mkOption {
