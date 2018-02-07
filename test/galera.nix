@@ -20,12 +20,8 @@ with k8s;
     };
   };
 
-  kubernetes.modules.etcd-operator = {
-    module = "etcd-operator";
-  };
-
   kubernetes.modules.etcd = {
-    module = "etcd-cluster";
+    module = "etcd";
   };
 
   kubernetes.resources.secrets.mysql-user.data = {
