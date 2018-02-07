@@ -109,5 +109,9 @@ in {
     local-volume-provisioner = kubenix.buildResources {
       configuration.imports = [./test/local-volume-provisioner.nix globalConfig];
     };
+
+    vault = kubenix.buildResources {
+      configuration.imports = [./test/vault.nix globalConfig];
+    };
   };
 }

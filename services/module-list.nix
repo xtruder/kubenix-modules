@@ -19,4 +19,5 @@
   ./galera.nix
   ./kube-lego.nix
   ./pachyderm.nix
+  ./vault.nix
 ]
