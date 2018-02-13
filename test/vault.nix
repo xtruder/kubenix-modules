@@ -1,25 +1,22 @@
-{ config, ... }:
+{ config, k8s, ... }:
 
 {
   require = import ../services/module-list.nix;
 
-  kubernetes.modules.etcd.module = "etcd";
-
   kubernetes.modules.vault = {
     module = "vault";
-    configuration.configuration = {
-      storage.etcd = {
-        address = "http://etcd:2379";
-        etcd_api = "v3";
-        ha_enabled = "true";
-        path = "vault7/";
-      };
-      listener = [{
-        tcp = {
-          address = "0.0.0.0:8200";
-          tls_disable = "true";
+    configuration = {
+      dev = {
+        enable = true;
+        token = {
+          name = "vault-token";
+          key = "token";
         };
-      }];
+      };
     };
+  };
+
+  kubernetes.resources.secrets.vault-token.data = {
+    token = k8s.toBase64 "e2bf6c5e-88cc-2046-755d-7ba0bdafef35";
   };
 }

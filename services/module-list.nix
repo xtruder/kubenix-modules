@@ -20,4 +20,5 @@
   ./kube-lego.nix
   ./pachyderm.nix
   ./vault.nix
+  ./vault-controller.nix
 ]

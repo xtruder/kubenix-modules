@@ -1,6 +1,7 @@
-{ config, lib, ... }:
+{ config, lib, k8s, ... }:
 
 with lib;
+with k8s;
 
 {
   kubernetes.moduleDefinitions.vault.module = { name, config, ... }: {
@@ -14,12 +15,26 @@ with lib;
       configuration = mkOption {
         description = "Vault configuration file content";
         type = types.attrs;
+        default = {};
       };
 
       replicas = mkOption {
         description = "Number of vault replicas to deploy";
-        default = 2;
+        default = 1;
         type = types.int;
+      };
+
+      dev = {
+        enable = mkOption {
+          description = "Whether to enable development mode";
+          type = types.bool;
+          default = false;
+        };
+
+        token = mkSecretOption {
+          description = "Development root token id";
+          default = null;
+        };
       };
     };
 
@@ -36,7 +51,7 @@ with lib;
             spec = {
               containers.vault = {
                 image = config.image;
-                args = ["server"];
+                args = ["server"] ++ optionals config.dev.enable ["-dev"];
                 securityContext = {
                   privileged = false;
                   capabilities.add = ["IPC_LOCK"];
@@ -45,6 +60,7 @@ with lib;
                   VAULT_LOCAL_CONFIG.value = builtins.toJSON config.configuration;
                   VAULT_CLUSTER_INTERFACE.value = "eth0";
                   VAULT_REDIRECT_INTERFACE.value = "eth0";
+                  VAULT_DEV_ROOT_TOKEN_ID = mkIf (config.dev.token != null) (secretToEnv config.dev.token);
                 };
                 resources = {
                   requests.memory = "50Mi";
