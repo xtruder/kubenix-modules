@@ -765,6 +765,12 @@ with lib;
         };
       };
 
+      kubernetes.resources.podDisruptionBudgets.redis-proxy = {
+        metadata.name = "${name}-proxy";
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = "${name}-proxy";
+      };
+
       kubernetes.resources.statefulSets.redis-node = {
         metadata.name = "${name}-node";
         metadata.labels.app = "${name}-node";
@@ -837,6 +843,12 @@ with lib;
         };
       };
 
+      kubernetes.resources.podDisruptionBudgets.redis-node = {
+        metadata.name = "${name}-node";
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = "${name}-node";
+      };
+
       kubernetes.resources.deployments.redis-sentinel = {
         metadata.name = "${name}-sentinel";
         metadata.labels.app = "${name}-sentinel";
@@ -871,6 +883,12 @@ with lib;
             };
           };
         };
+      };
+
+      kubernetes.resources.podDisruptionBudgets.redis-sentinel = {
+        metadata.name = "${name}-sentinel";
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = "${name}-sentinel";
       };
 
       kubernetes.resources.services.redis-sentinel = {
