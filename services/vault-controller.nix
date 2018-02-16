@@ -87,6 +87,7 @@ with k8s;
           selector.matchLabels.app = "vault-controller";
           template = {
             metadata.labels.app = "vault-controller";
+            spec.serviceAccountName = "vault-controller";
             spec.containers.vault-controller = {
               image = config.image;
               args = [
