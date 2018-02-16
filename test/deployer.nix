@@ -3,26 +3,20 @@
 {
   require = import ../services/module-list.nix;
 
-  kubernetes.modules.etcd-operator = {
-    module = "etcd-operator";
-  };
-
   kubernetes.modules.etcd = {
-    module = "etcd-cluster";
-    configuration.size = 1;
+    module = "etcd";
   };
 
   kubernetes.modules.galera = {
     module = "galera";
 
     configuration = {
-      storage.enable = true;
-      rootPassword.name = "galera";
-      replicas = 1;
+      rootPassword.name = "mysql";
+      xtrabackupPassword.name = "mysql";
     };
   };
 
-  kubernetes.resources.secrets.mysql.secrets.password = k8s.toBase64 "root";
+  kubernetes.resources.secrets.mysql.data.password = k8s.toBase64 "root";
 
   kubernetes.modules.mysql-databases = {
     module = "deployer";
@@ -46,15 +40,6 @@
       resource.mysql_database.fourstop = {
         name = "fourstop";
         default_collation = "utf8_unicode_ci";
-      };
-
-      resource.mysql_user.fourstop.user = "fourstop";
-
-      resource.mysql_grant.fourstop = {
-        user = "fourstop";
-        host = "%";
-        database = "fourstop";
-        privileges = ["ALL"];
       };
     };
   };
