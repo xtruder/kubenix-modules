@@ -871,14 +871,28 @@ with lib;
                   name = "conf";
                   mountPath = "/etc/redis";
                 }];
+
                 resources.requests = {
                   cpu = "100m";
                   memory = "256Mi";
                 };
+
                 readinessProbe = {
                   exec.command = ["sh" "-c" "/usr/local/bin/redis-cli -h $(hostname) -p 26379 ping"];
                   initialDelaySeconds = 15;
                   timeoutSeconds = 5;
+                };
+
+                # this is quick and dirty livess probe that restarts redis
+                # sentinel if no master is up for some period of time, better
+                # solution would be for primary master to have same ip, but
+                # we can't simply achive this with k8s statefulsets
+                livenessProbe = {
+                  exec.command = ["sh" "-c" "/usr/local/bin/redis-cli -p 26379 info | grep master0 | grep up"];
+                  initialDelaySeconds = 120; # wait for masters to be up for at least 2minutes
+                  timeoutSeconds = 5;
+                  periodSeconds = 30;
+                  failureThreshold = 5;
                 };
               };
               volumes.conf.configMap.name = name;
