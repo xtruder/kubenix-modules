@@ -767,6 +767,7 @@ with lib;
 
       kubernetes.resources.podDisruptionBudgets.redis-proxy = {
         metadata.name = "${name}-proxy";
+        metadata.labels.app = name;
         spec.maxUnavailable = 1;
         spec.selector.matchLabels.app = "${name}-proxy";
       };
@@ -845,6 +846,7 @@ with lib;
 
       kubernetes.resources.podDisruptionBudgets.redis-node = {
         metadata.name = "${name}-node";
+        metadata.labels.app = name;
         spec.maxUnavailable = 1;
         spec.selector.matchLabels.app = "${name}-node";
       };
@@ -887,6 +889,7 @@ with lib;
 
       kubernetes.resources.podDisruptionBudgets.redis-sentinel = {
         metadata.name = "${name}-sentinel";
+        metadata.labels.app = name;
         spec.maxUnavailable = 1;
         spec.selector.matchLabels.app = "${name}-sentinel";
       };
