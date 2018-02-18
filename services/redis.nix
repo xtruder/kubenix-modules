@@ -6,7 +6,7 @@ with lib;
 {
   config.kubernetes.moduleDefinitions.redis.module = {name, config, ...}: let
     b2s = value: if value then "yes" else "no";
-    shared = ''
+    redisConfig = ''
       # Redis configuration file example.
       #
       # Note that in order to read the configuration file, Redis must be
@@ -278,7 +278,7 @@ with lib;
       # starting the replication synchronization process, otherwise the master will
       # refuse the slave request.
       #
-      ${optionalString (config.password != "") "masterauth ${config.password}"}
+      # masterauth <password>
 
       # When a slave loses its connection with the master, or when the replication
       # is still in progress, the slave can act in two different ways:
@@ -643,7 +643,7 @@ with lib;
       # BGSAVE or BGREWRITEAOF is in progress.
       #
       # This means that while another child is saving, the durability of Redis is
-      # the same as "appendfsync none". In p
+      # the same as "appendfsync none". In p      
     '';
   in {
     options = {
@@ -653,10 +653,9 @@ with lib;
         default = "redis:4";
       };
 
-      password = mkOption {
+      password = mkSecretOption {
         description = "Redis password";
-        type = types.str;
-        default = "";
+        default = null;
       };
 
       appendonly = mkOption {
@@ -715,24 +714,7 @@ with lib;
     };
 
     config = {
-      kubernetes.resources.configMaps.redis.data = {
-        "master.conf" = ''
-          ${shared}
-          ${optionalString (config.password != "") "requirepass ${config.password}"}
-        '';
-        "slave.conf" = ''
-          ${shared}
-          slaveof redis-node-0.redis-node 6379
-          ${optionalString (config.password != "") "requirepass ${config.password}"}
-        '';
-        "sentinel.conf" = ''
-          ${shared}
-          port 26379
-          sentinel monitor redis redis-node-0.redis-node 6379 2
-          ${optionalString (config.password != "") "sentinel auth-pass redis ${config.password}"}
-          sentinel down-after-milliseconds redis 5000
-        '';
-      };
+      kubernetes.resources.configMaps.redis.data."redis.conf" = redisConfig;
 
       kubernetes.resources.deployments.redis-proxy = {
         metadata.name = "${name}-proxy";
@@ -788,6 +770,7 @@ with lib;
             spec = {
               containers.metrics = {
                 image = "oliver006/redis_exporter";
+                env.REDIS_PASSWORD = mkIf (config.password != null) (secretToEnv config.password);
                 ports = [{
                   name = "metrics";
                   containerPort = 9121;
@@ -799,12 +782,17 @@ with lib;
                   [[ `hostname` =~ -([0-9]+)$  ]] || exit 1
                   ordinal=''${BASH_REMATCH[1]}
                   if [[ $ordinal -eq 0  ]]; then
-                    exec redis-server /etc/redis/master.conf
+                    exec redis-server /etc/redis/redis.conf \
+                      ${optionalString (config.password != null) "--requirepass $REDIS_PASSWORD"}
                   else
-                    exec redis-server /etc/redis/slave.conf
+                    exec redis-server /etc/redis/redis.conf \
+                      --slaveof redis-node-0.redis-node 6379 \
+                      ${optionalString (config.password != null) "--requirepass $REDIS_PASSWORD"} \
+                      ${optionalString (config.password != null) "--masterauth $REDIS_PASSWORD"}
                   fi
                 ''];
                 image = config.image;
+                env.REDIS_PASSWORD = mkIf (config.password != null) (secretToEnv config.password);
                 ports = [{
                   name = "redis";
                   containerPort = 6379;
@@ -823,7 +811,9 @@ with lib;
                 };
 
                 readinessProbe = {
-                  exec.command = ["sh" "-c" "/usr/local/bin/redis-cli -h $(hostname) ping"];
+                  exec.command = ["sh" "-c" ''
+                    redis-cli ${optionalString (config.password != null) "-a $REDIS_PASSWORD"} ping | grep PONG
+                  ''];
                   initialDelaySeconds = 15;
                   timeoutSeconds = 5;
                 };
@@ -862,7 +852,13 @@ with lib;
             spec = {
               containers.redis-sentinel = {
                 inherit (config) image;
-                command = ["redis-sentinel" "/etc/redis/sentinel.conf"];
+                command = [
+                  "redis-sentinel" "/etc/redis/redis.conf"
+                  "--port" "26379"
+                  "--sentinel" "monitor" "redis" "redis-node-0.redis-node" "6379" "2"
+                  "--sentinel" "down-after-milliseconds" "redis" "5000"
+                ] ++ optionals (config.password != null) ["--sentinel" "auth-pass" "redis" "$(REDIS_PASSWORD)"];
+                env.REDIS_PASSWORD = mkIf (config.password != null) (secretToEnv config.password);
                 ports = [{
                   name = "redis-sentinel";
                   containerPort = 26379;
@@ -878,7 +874,9 @@ with lib;
                 };
 
                 readinessProbe = {
-                  exec.command = ["sh" "-c" "/usr/local/bin/redis-cli -h $(hostname) -p 26379 ping"];
+                  exec.command = ["sh" "-c" ''
+                    redis-cli ${optionalString (config.password != null) "-a $REDIS_PASSWORD"} -p 26379 ping | grep PONG
+                  ''];
                   initialDelaySeconds = 15;
                   timeoutSeconds = 5;
                 };
@@ -888,7 +886,9 @@ with lib;
                 # solution would be for primary master to have same ip, but
                 # we can't simply achive this with k8s statefulsets
                 livenessProbe = {
-                  exec.command = ["sh" "-c" "/usr/local/bin/redis-cli -p 26379 info | grep master0 | grep up"];
+                  exec.command = ["sh" "-c" ''
+                    redis-cli ${optionalString (config.password != null) "-a $REDIS_PASSWORD"} -p 26379 info | grep master0 | grep up
+                  ''];
                   initialDelaySeconds = 120; # wait for masters to be up for at least 2minutes
                   timeoutSeconds = 5;
                   periodSeconds = 30;
