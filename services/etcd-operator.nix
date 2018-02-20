@@ -3,10 +3,7 @@
 with k8s;
 with lib;
 
-let
-  hasModuleType = type:
-    (filterAttrs (name: config: config.module == type) config.kubernetes.modules) != {};
-in mkMerge [{
+{
   kubernetes.moduleDefinitions.etcd-backup.module = {name, config, ...}: {
     options = {
       etcdEndpoints = mkOption {
@@ -34,6 +31,21 @@ in mkMerge [{
     };
 
     config = {
+      kubernetes.resources.customResourceDefinitions.etcdbackups = {
+        kind = "CustomResourceDefinition";
+        apiVersion = "apiextensions.k8s.io/v1beta1";
+        metadata.name = "etcdbackups.etcd.database.coreos.com";
+        spec = {
+          group = "etcd.database.coreos.com";
+          version = "v1beta2";
+          scope = "Namespaced";
+          names = {
+            plural = "etcdbackups";
+            kind = "EtcdBackup";
+          };
+        };
+      };
+
       kubernetes.customResources.etcdbackups.etcd-backup = {
         metadata.name = name;
         spec = {
@@ -64,6 +76,22 @@ in mkMerge [{
     };
 
     config = {
+      kubernetes.resources.customResourceDefinitions.etcdclusters = {
+        kind = "CustomResourceDefinition";
+        apiVersion = "apiextensions.k8s.io/v1beta1";
+        metadata.name = "etcdclusters.etcd.database.coreos.com";
+        spec = {
+          group = "etcd.database.coreos.com";
+          version = "v1beta2";
+          scope = "Namespaced";
+          names = {
+            plural = "etcdclusters";
+            kind = "EtcdCluster";
+            shortNames = ["etcd"];
+          };
+        };
+      };
+
       kubernetes.customResources.etcdclusters.etcd-cluster = {
         metadata.name = name;
         spec = {
@@ -92,6 +120,21 @@ in mkMerge [{
     };
 
     config = {
+      kubernetes.resources.customResourceDefinitions.etcdrestores = {
+        kind = "CustomResourceDefinition";
+        apiVersion = "apiextensions.k8s.io/v1beta1";
+        metadata.name = "etcdrestores.etcd.database.coreos.com";
+        spec = {
+          group = "etcd.database.coreos.com";
+          version = "v1beta2";
+          scope = "Namespaced";
+          names = {
+            plural = "etcdrestores";
+            kind = "EtcdRestore";
+          };
+        };
+      };
+
       kubernetes.resources.deployments.etcd-operator = {
         metadata.name = "etcd-operator";
         metadata.labels.app = "etcd-operator";
@@ -218,50 +261,4 @@ in mkMerge [{
       };
     };
   };
-} (mkIf (hasModuleType "etcd-cluster") {
-  kubernetes.resources.customResourceDefinitions.etcdclusters = {
-    kind = "CustomResourceDefinition";
-    apiVersion = "apiextensions.k8s.io/v1beta1";
-    metadata.name = "etcdclusters.etcd.database.coreos.com";
-    spec = {
-      group = "etcd.database.coreos.com";
-      version = "v1beta2";
-      scope = "Namespaced";
-      names = {
-        plural = "etcdclusters";
-        kind = "EtcdCluster";
-        shortNames = ["etcd"];
-      };
-    };
-  };
-
-  kubernetes.resources.customResourceDefinitions.etcdbackups = {
-    kind = "CustomResourceDefinition";
-    apiVersion = "apiextensions.k8s.io/v1beta1";
-    metadata.name = "etcdbackups.etcd.database.coreos.com";
-    spec = {
-      group = "etcd.database.coreos.com";
-      version = "v1beta2";
-      scope = "Namespaced";
-      names = {
-        plural = "etcdbackups";
-        kind = "EtcdBackup";
-      };
-    };
-  };
-
-  kubernetes.resources.customResourceDefinitions.etcdrestores = {
-    kind = "CustomResourceDefinition";
-    apiVersion = "apiextensions.k8s.io/v1beta1";
-    metadata.name = "etcdrestores.etcd.database.coreos.com";
-    spec = {
-      group = "etcd.database.coreos.com";
-      version = "v1beta2";
-      scope = "Namespaced";
-      names = {
-        plural = "etcdrestores";
-        kind = "EtcdRestore";
-      };
-    };
-  };
-})]
+}

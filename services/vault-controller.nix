@@ -37,6 +37,22 @@ with k8s;
     };
 
     config = {
+      kubernetes.resources.customResourceDefinitions.secret-claims = {
+        kind = "CustomResourceDefinition";
+        apiVersion = "apiextensions.k8s.io/v1beta1";
+        metadata.name = "secretclaims.vaultproject.io";
+        spec = {
+          group = "vaultproject.io";
+          version = "v1";
+          scope = "Namespaced";
+          names = {
+            plural = "secretclaims";
+            kind = "SecretClaim";
+            shortNames = ["scl"];
+          };
+        };
+      };
+
       kubernetes.customResources.secret-claims.claim = {
         metadata.name = config.name;
         spec = {
@@ -144,22 +160,6 @@ with k8s;
           resources = ["secrets"];
           verbs = ["get" "watch" "list" "create" "update" "patch" "delete"];
         }];
-      };
-    };
-  };
-
-  kubernetes.resources.customResourceDefinitions.secret-claims = {
-    kind = "CustomResourceDefinition";
-    apiVersion = "apiextensions.k8s.io/v1beta1";
-    metadata.name = "secretclaims.vaultproject.io";
-    spec = {
-      group = "vaultproject.io";
-      version = "v1";
-      scope = "Namespaced";
-      names = {
-        plural = "secretclaims";
-        kind = "SecretClaim";
-        shortNames = ["scl"];
       };
     };
   };
