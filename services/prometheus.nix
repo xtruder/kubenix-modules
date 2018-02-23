@@ -215,7 +215,7 @@ with lib;
         };
         subjects = [{
           kind = "ServiceAccount";
-          name = "prometheus";
+          name = name;
           namespace = module.namespace;
         }];
       };
