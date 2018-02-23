@@ -9,17 +9,9 @@ let
 
   globalConfig = {config, ...}: {
     config.kubernetes.version = "1.9";
-
-    config.kubernetes.defaultModuleConfiguration.all = {
-      config.kubernetes.moduleDefinitions = config.kubernetes.moduleDefinitions;
-    };
   };
 in {
-  services = import ./services/module-list.nix ++ [({config, ...}: {
-    kubernetes.defaultModuleConfiguration.all = {
-      config.kubernetes.moduleDefinitions = config.kubernetes.moduleDefinitions;
-    };
-  })];
+  services = import ./services/module-list.nix;
 
   tests = {
     rabbitmq = kubenix.buildResources {
