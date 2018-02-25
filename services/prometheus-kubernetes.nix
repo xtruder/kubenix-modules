@@ -222,6 +222,12 @@
         };
       };
 
+      kubernetes.modules.prometheus-pushgateway = {
+        name = "${name}-prometheus-pushgateway";
+        module = "prometheus-alertmanager";
+        namespace = module.namespace;
+      };
+
       kubernetes.modules.grafana = {
         name = "${name}-grafana";
         module = "grafana";
