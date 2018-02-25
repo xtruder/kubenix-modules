@@ -224,7 +224,7 @@
 
       kubernetes.modules.prometheus-pushgateway = {
         name = "${name}-prometheus-pushgateway";
-        module = "prometheus-alertmanager";
+        module = "prometheus-pushgateway";
         namespace = module.namespace;
       };
 
