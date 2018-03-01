@@ -1,5 +1,5 @@
 [
-  ./rabbitmq/default.nix
+  ./rabbitmq.nix
   ./elasticsearch.nix
   ./elasticsearch-curator.nix
   ./redis.nix

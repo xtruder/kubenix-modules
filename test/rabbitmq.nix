@@ -1,7 +1,7 @@
 { config, k8s, ... }:
 
 {
-  require = [../services/rabbitmq];
+  require = [../services/rabbitmq.nix];
 
   kubernetes.resources.secrets.rabbitmq.data = {
     password = k8s.toBase64 "rabbitmq";

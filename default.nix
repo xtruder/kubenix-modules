@@ -8,7 +8,7 @@ let
   }) { inherit pkgs; };
 
   globalConfig = {config, ...}: {
-    config.kubernetes.version = "1.9";
+    config.kubernetes.version = "1.8";
   };
 in {
   services = import ./services/module-list.nix;
