@@ -4,7 +4,7 @@ with lib;
 with k8s;
 
 {
-  kubernetes.moduleDefinitions.vault.module = { name, config, ... }: {
+  kubernetes.moduleDefinitions.vault.module = { name, module, config, ... }: {
     options = {
       image = mkOption {
         description = "Vault image to use";
@@ -36,6 +36,18 @@ with k8s;
           default = null;
         };
       };
+
+      tlsSecret = mkOption {
+        description = "Name of the secret where to read tls certs";
+        type = types.nullOr types.str;
+        default = null;
+      };
+
+      healthPort = mkOption {
+        description = "Healtcheck port";
+        type = types.int;
+        default = 8200;
+      };
     };
 
     config = {
@@ -61,6 +73,7 @@ with k8s;
                   VAULT_CLUSTER_INTERFACE.value = "eth0";
                   VAULT_REDIRECT_INTERFACE.value = "eth0";
                   VAULT_DEV_ROOT_TOKEN_ID = mkIf (config.dev.token != null) (secretToEnv config.dev.token);
+                  VAULT_CAPATH.value = "/var/lib/vault/ssl/ca.crt";
                 };
                 resources = {
                   requests.memory = "50Mi";
@@ -78,11 +91,18 @@ with k8s;
                 readinessProbe = {
                   httpGet = {
                     path = "/v1/sys/leader";
-                    port = 8200;
+                    port = config.healthPort;
                   };
                   initialDelaySeconds = 30;
                   timeoutSeconds = 30;
                 };
+                volumeMounts.storage = mkIf (config.tlsSecret != null) {
+                  name = "cert";
+                  mountPath = "/var/lib/vault/ssl/";
+                };
+              };
+              volumes.cert = mkIf (config.tlsSecret != null) {
+                secret.secretName = config.tlsSecret;
               };
             };
           };
@@ -100,6 +120,26 @@ with k8s;
           }];
           selector.app = name;
         };
+      };
+
+      kubernetes.resources.serviceAccounts.vault = {
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
+      };
+
+      kubernetes.resources.clusterRoleBindings.vault-tokenreview-binding = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = "${module.namespace}-${module.name}-tokenreview-binding";
+        roleRef = {
+          apiGroup = "rbac.authorization.k8s.io";
+          kind = "ClusterRole";
+          name = "system:auth-delegator";
+        };
+        subjects = [{
+          kind = "ServiceAccount";
+          name = module.name;
+          namespace = module.namespace;
+        }];
       };
     };
   };
