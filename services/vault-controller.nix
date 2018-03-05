@@ -127,26 +127,26 @@ with k8s;
       };
 
       kubernetes.resources.serviceAccounts.vault-controller = {
-        metadata.name = "vault-controller";
-        metadata.labels.app = "vault-controller";
+        metadata.name = name;
+        metadata.labels.app = name;
       };
 
-      kubernetes.resources.roleBindings.vault-controller = {
+      kubernetes.resources.clusterRoleBindings.vault-controller = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = "vault-controller";
+        metadata.name = "${module.namespace}-${module.name}";
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
-          kind = "Role";
+          kind = "ClusterRole";
           name = "vault-controller";
         };
         subjects = [{
           kind = "ServiceAccount";
-          name = "vault-controller";
+          name = name;
           namespace = module.namespace;
         }];
       };
 
-      kubernetes.resources.roles."vault-controller" = {
+      kubernetes.resources.clusterRoles.vault-controller = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = "vault-controller";
         rules = [{
