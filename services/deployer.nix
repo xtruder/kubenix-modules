@@ -50,6 +50,7 @@ with k8s;
         spec.template = {
           metadata.labels.app = name;
           spec = {
+            serviceAccountName = name;
             containers.deployer = {
               image = config.image;
               imagePullPolicy = "Always";
@@ -72,8 +73,14 @@ with k8s;
 
       kubernetes.resources.configMaps.deployer = {
         metadata.name = name;
+        metadata.labels.app = name;
         data."main.tf.json" = builtins.toJSON
           (filterAttrs (n: v: v != [] && v != {}) config.configuration);
+      };
+
+      kubernetes.resources.serviceAccounts.deployer = {
+        metadata.name = name;
+        metadata.labels.app = name;
       };
     };
   };
