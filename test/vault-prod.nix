@@ -121,4 +121,41 @@
       };
     };
   };
+
+  # enable audit logs
+  # VAULT_TOKEN=<token> vault audit enable socket address=logstash-vault:65100 socket_type=tcp
+  kubernetes.modules.logstash = {
+    module = "logstash";
+    configuration.configuration = ''
+      input {
+        tcp {
+          port => 65100
+          codec => "json"
+        }
+      }
+
+      filter {
+        date {
+          match => ["time", "ISO8601"]
+        }
+      }
+
+      output {
+        stdout {
+          codec => rubydebug
+        }
+      }
+    '';
+  };
+
+  kubernetes.resources.services.logstash-vault = {
+    spec = {
+      ports = [{
+        name = "logs";
+        port = 65100;
+        targetPort = 65100;
+      }];
+      selector.app = "logstash";
+    };
+  };
 }
