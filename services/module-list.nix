@@ -22,4 +22,5 @@
   ./vault.nix
   ./vault-ui.nix
   ./vault-controller.nix
+  ./logstash.nix
 ]

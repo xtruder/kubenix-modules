@@ -117,5 +117,9 @@ in {
     vault-ui = kubenix.buildResources {
       configuration.imports = [./test/vault-ui.nix globalConfig];
     };
+
+    logstash = kubenix.buildResources {
+      configuration.imports = [./test/logstash.nix globalConfig];
+    };
   };
 }
