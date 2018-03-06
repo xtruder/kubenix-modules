@@ -14,7 +14,12 @@ with k8s;
 
       configuration = mkOption {
         description = "Vault configuration file content";
-        type = types.attrs;
+        type = mkOptionType {
+          name = "deepAttrs";
+          description = "deep attribute set";
+          check = isAttrs;
+          merge = loc: foldl' (res: def: recursiveUpdate res def.value) {};
+        };
         default = {};
       };
 
@@ -42,15 +47,31 @@ with k8s;
         type = types.nullOr types.str;
         default = null;
       };
-
-      healthPort = mkOption {
-        description = "Healtcheck port";
-        type = types.int;
-        default = 8200;
-      };
     };
 
     config = {
+      configuration = mkIf (!config.dev.enable) (if (config.tlsSecret != null) then {
+        listener = [{
+          tcp = {
+            address = "0.0.0.0:8200";
+            tls_cert_file = "/var/lib/vault/ssl/vault.crt";
+            tls_key_file = "/var/lib/vault/ssl/vault.key";
+          };
+        } {
+          tcp = {
+            address = "0.0.0.0:8400";
+            tls_disable = true;
+          };
+        }];
+      } else {
+        listener = [{
+          tcp = {
+            address = "0.0.0.0:8200";
+            tls_disable = true;
+          };
+        }];
+      });
+
       kubernetes.resources.deployments.vault = {
         metadata.name = name;
         metadata.labels.app = name;
@@ -74,6 +95,10 @@ with k8s;
                   VAULT_REDIRECT_INTERFACE.value = "eth0";
                   VAULT_DEV_ROOT_TOKEN_ID = mkIf (config.dev.token != null) (secretToEnv config.dev.token);
                   VAULT_CAPATH.value = "/var/lib/vault/ssl/ca.crt";
+                  VAULT_ADDR.value =
+                    if (config.tlsSecret != null)
+                    then "https://127.0.0.1:8200/"
+                    else "http://127.0.0.1:8200";
                 };
                 resources = {
                   requests.memory = "50Mi";
@@ -91,7 +116,7 @@ with k8s;
                 readinessProbe = {
                   httpGet = {
                     path = "/v1/sys/leader";
-                    port = config.healthPort;
+                    port = if (config.tlsSecret != null) then 8400 else 8200;
                   };
                   initialDelaySeconds = 30;
                   timeoutSeconds = 30;

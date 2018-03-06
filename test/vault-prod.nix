@@ -112,25 +112,12 @@
     module = "vault";
     configuration = {
       tlsSecret = "vault-ca";
-      healthPort = 8400;
       configuration = {
         storage.etcd = {
           address = "http://etcd:2379";
           etcd_api = "v3";
           ha_enabled = "true";
         };
-        listener = [{
-          tcp = {
-            address = "0.0.0.0:8200";
-            tls_cert_file = "/var/lib/vault/ssl/vault.crt";
-            tls_key_file = "/var/lib/vault/ssl/vault.key";
-          };
-        } {
-          tcp = {
-            address = "0.0.0.0:8400";
-            tls_disable = true;
-          };
-        }];
       };
     };
   };
