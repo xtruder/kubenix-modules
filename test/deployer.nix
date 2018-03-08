@@ -3,17 +3,9 @@
 {
   require = import ../services/module-list.nix;
 
-  kubernetes.modules.etcd = {
-    module = "etcd";
-  };
-
-  kubernetes.modules.galera = {
-    module = "galera";
-
-    configuration = {
-      rootPassword.name = "mysql";
-      xtrabackupPassword.name = "mysql";
-    };
+  kubernetes.modules.mariadb = {
+    module = "mariadb";
+    configuration.rootPassword.name = "mysql";
   };
 
   kubernetes.resources.secrets.mysql.data.password = k8s.toBase64 "root";
@@ -26,15 +18,9 @@
     };
     configuration.configuration = {
       provider.mysql = {
-        endpoint = "galera:3306";
+        endpoint = "mariadb:3306";
         username = "root";
         password = "root";
-      };
-
-      terraform.backend.etcdv3 = {
-        endpoints = ["http://etcd:2379"];
-        prefix = "terraform-state/";
-        lock = true;
       };
 
       resource.mysql_database.fourstop = {
