@@ -12,8 +12,20 @@ with k8s;
         default = "xtruder/deployer:latest";
       };
 
+      runAsJob = mkOption {
+        description = "Whether to run as job";
+        type = types.bool;
+        default = false;
+      };
+
       exitOnError = mkOption {
         description = "Exit on error (do not atomatically retry)";
+        type = types.bool;
+        default = false;
+      };
+
+      exitOnSuccess = mkOption {
+        description = "Exit on success";
         type = types.bool;
         default = false;
       };
@@ -43,19 +55,24 @@ with k8s;
     };
 
     config = {
-      kubernetes.resources.deployments.deployer = {
+      exitOnError = mkDefault config.runAsJob;
+      exitOnSuccess = mkDefault config.runAsJob;
+
+      kubernetes.resources.${if config.runAsJob then "jobs" else "deployments"}.deployer = {
         metadata.name = name;
         metadata.labels.app = name;
-        spec.selector.matchLabels.app = name;
+        spec.selector.matchLabels.app = mkIf (!config.runAsJob) name;
         spec.template = {
           metadata.labels.app = name;
           spec = {
+            restartPolicy = mkIf config.runAsJob "Never";
             serviceAccountName = name;
             containers.deployer = {
               image = config.image;
               imagePullPolicy = "Always";
               env = {
                 EXIT_ON_ERROR = mkIf config.exitOnError {value = "1";};
+                EXIT_ON_SUCCESS = mkIf config.exitOnSuccess {value = "1";};
               } // mapAttrs' (name: value: nameValuePair "TF_VAR_${name}" value) config.vars;
               volumeMounts = [{
                 name = "resources";
