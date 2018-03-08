@@ -54,8 +54,8 @@ with k8s;
         listener = [{
           tcp = {
             address = "0.0.0.0:8200";
-            tls_cert_file = "/var/lib/vault/ssl/vault.crt";
-            tls_key_file = "/var/lib/vault/ssl/vault.key";
+            tls_cert_file = "/var/lib/vault/ssl/tls.crt";
+            tls_key_file = "/var/lib/vault/ssl/tls.key";
           };
         } {
           tcp = {
