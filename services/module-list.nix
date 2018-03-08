@@ -23,4 +23,5 @@
   ./vault-ui.nix
   ./vault-controller.nix
   ./logstash.nix
+  ./mariadb.nix
 ]
