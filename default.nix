@@ -114,6 +114,10 @@ in {
       configuration.imports = [./test/vault-controller.nix globalConfig];
     };
 
+    vault-controller-k8s-auth = kubenix.buildResources {
+      configuration.imports = [./test/vault-controller-k8s-auth.nix globalConfig];
+    };
+
     vault-ui = kubenix.buildResources {
       configuration.imports = [./test/vault-ui.nix globalConfig];
     };

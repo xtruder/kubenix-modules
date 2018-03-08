@@ -151,21 +151,6 @@ with k8s;
         metadata.name = module.name;
         metadata.labels.app = module.name;
       };
-
-      kubernetes.resources.clusterRoleBindings.vault-tokenreview-binding = {
-        apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = "${module.namespace}-${module.name}-tokenreview-binding";
-        roleRef = {
-          apiGroup = "rbac.authorization.k8s.io";
-          kind = "ClusterRole";
-          name = "system:auth-delegator";
-        };
-        subjects = [{
-          kind = "ServiceAccount";
-          name = module.name;
-          namespace = module.namespace;
-        }];
-      };
     };
   };
 }

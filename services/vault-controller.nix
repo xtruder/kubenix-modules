@@ -91,6 +91,18 @@ with k8s;
           description = "Vault token";
           default.key = "token";
         };
+
+        saauth = mkOption {
+          description = "Whether to enable kubernetes service account auth";
+          type = types.bool;
+          default = false;
+        };
+
+        role = mkOption {
+          description = "Kubernetes service account auth role";
+          type = types.str;
+          default = "vault-controller";
+        };
       };
     };
 
@@ -106,14 +118,18 @@ with k8s;
             spec.serviceAccountName = "vault-controller";
             spec.containers.vault-controller = {
               image = config.image;
-              args = [
+              imagePullPolicy = "Always";
+              command = [
                 "/kube-vault-controller"
-                "--sync-period=${config.syncPeriod}"
-                "--namespace=${module.namespace}"
+                "-sync-period=${config.syncPeriod}"
+                "-namespace=${module.namespace}"
+              ] ++ optionals (config.vault.saauth) [
+                "-saauth"
+                "-vaultrole=${config.vault.role}"
               ];
               env = {
                 VAULT_ADDR.value = config.vault.address;
-                VAULT_TOKEN = secretToEnv config.vault.token;
+                VAULT_TOKEN = mkIf (!config.vault.saauth) (secretToEnv config.vault.token);
               };
               resources = {
                 requests.memory = "64Mi";
@@ -129,6 +145,21 @@ with k8s;
       kubernetes.resources.serviceAccounts.vault-controller = {
         metadata.name = name;
         metadata.labels.app = name;
+      };
+
+      kubernetes.resources.clusterRoleBindings.vault-controller-tokenreview-binding = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = "${module.namespace}-${module.name}-tokenreview-binding";
+        roleRef = {
+          apiGroup = "rbac.authorization.k8s.io";
+          kind = "ClusterRole";
+          name = "system:auth-delegator";
+        };
+        subjects = [{
+          kind = "ServiceAccount";
+          name = module.name;
+          namespace = module.namespace;
+        }];
       };
 
       kubernetes.resources.clusterRoleBindings.vault-controller = {
