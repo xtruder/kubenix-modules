@@ -6,4 +6,5 @@ Repository of kubenix services
 
 ```
 nix build -f default.nix tests.<test_name>
+kubectl apply -f result
 ```
