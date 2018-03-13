@@ -47,6 +47,12 @@ with k8s;
         type = types.nullOr types.str;
         default = null;
       };
+
+      configReloadPeriod = mkOption {
+        description = "Vault config reload period";
+        type = types.int;
+        default = 60;
+      };
     };
 
     config = {
@@ -124,7 +130,12 @@ with k8s;
                   initialDelaySeconds = 30;
                   timeoutSeconds = 30;
                 };
-                volumeMounts.storage = mkIf (config.tlsSecret != null) {
+                livenessProbe = {
+                  exec.command = ["kill" "-SIGHUP" "1"];
+                  initialDelaySeconds = config.configReloadPeriod;
+                  periodSeconds = config.configReloadPeriod;
+                };
+                volumeMounts.ssl = mkIf (config.tlsSecret != null) {
                   name = "cert";
                   mountPath = "/var/lib/vault/ssl/";
                 };
