@@ -58,7 +58,7 @@ with k8s;
       exitOnError = mkDefault config.runAsJob;
       exitOnSuccess = mkDefault config.runAsJob;
 
-      kubernetes.resources.${if config.runAsJob then "jobs" else "deployments"}.deployer = {
+      kubernetes.resources.${if config.runAsJob then "jobs" else "deployments"}.deployer = mkMerge [{
         metadata.name = name;
         metadata.labels.app = name;
         spec.selector.matchLabels.app = mkIf (!config.runAsJob) name;
@@ -86,7 +86,9 @@ with k8s;
             volumes.resources.configMap.name = name;
           };
         };
-      };
+      } (optionalAttrs config.runAsJob {
+          spec.backoffLimit = 100;
+      })];
 
       kubernetes.resources.configMaps.deployer = {
         metadata.name = name;
