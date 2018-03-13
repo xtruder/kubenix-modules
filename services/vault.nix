@@ -108,7 +108,10 @@ with k8s;
                 };
                 ports = [{
                   containerPort = 8200;
-                  name = "http";
+                  name = "vault";
+                } {
+                  containerPort = 8400;
+                  name = "vault-unsecure";
                 } {
                   containerPort = 8201;
                   name = "cluster";
@@ -139,9 +142,13 @@ with k8s;
         metadata.labels.app = name;
         spec = {
           ports = [{
-            name = "http";
+            name = "vault";
             port = 8200;
             targetPort = 8200;
+          } {
+            name = "vault-unsecure";
+            port = 8400;
+            targetPort = 8400;
           }];
           selector.app = name;
         };
