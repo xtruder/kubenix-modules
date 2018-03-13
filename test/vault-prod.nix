@@ -128,7 +128,7 @@ in {
 
           while true; do
             echo "renewing token"
-            vault token renew -address=${vault} -ca-cert=/etc/certs/vault/ca.crt $(cat /vault/token)
+            vault token renew -address=${vault} -ca-cert=/etc/certs/vault/ca.crt $(cat /vault/token) >/dev/null
             sleep 1800
           done
         ''];
