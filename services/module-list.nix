@@ -24,4 +24,6 @@
   ./vault-controller.nix
   ./logstash.nix
   ./mariadb.nix
+  ./influxdb.nix
+  ./kubelog.nix
 ]

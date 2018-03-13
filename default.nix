@@ -125,5 +125,13 @@ in {
     logstash = kubenix.buildResources {
       configuration.imports = [./test/logstash.nix globalConfig];
     };
+
+    influxdb = kubenix.buildResources {
+      configuration.imports = [./test/influxdb.nix globalConfig];
+    };
+
+    kubelog = kubenix.buildResources {
+      configuration.imports = [./test/kubelog.nix globalConfig];
+    };
   };
 }
