@@ -53,9 +53,9 @@ with k8s;
                 configMap.name = name;
               };
             };
-          } // optionalAttrs (config.kind != "daemonSet") {
-            spec.replicas = 1;
-          };
+          }; 
+        } // optionalAttrs (config.kind != "daemonSet") {
+          replicas = 1;
         };
       };
 
