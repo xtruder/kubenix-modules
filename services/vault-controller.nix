@@ -103,6 +103,12 @@ with k8s;
           type = types.str;
           default = "vault-controller";
         };
+
+        caCert = mkOption {
+          description = "Vault ca cert secret name";
+          type = types.str;
+          default = "vault";
+        };
       };
     };
 
@@ -130,6 +136,7 @@ with k8s;
               env = {
                 VAULT_ADDR.value = config.vault.address;
                 VAULT_TOKEN = mkIf (!config.vault.saauth) (secretToEnv config.vault.token);
+                VAULT_CACERT = mkIf (config.vault.caCert != null) {value = "/var/lib/vault/ssl/ca.crt";};
               };
               resources = {
                 requests.memory = "64Mi";
@@ -137,6 +144,13 @@ with k8s;
                 limits.memory = "64Mi";
                 limits.cpu = "100m";
               };
+              volumeMounts.ssl = mkIf (config.vault.caCert != null) {
+                name = "cert";
+                mountPath = "/var/lib/vault/ssl/";
+              };
+            };
+            spec.volumes.cert = mkIf (config.vault.caCert != null) {
+              secret.secretName = config.vault.caCert;
             };
           };
         };
