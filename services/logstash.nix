@@ -20,7 +20,7 @@ with k8s;
       kind = mkOption {
         description = "Kind of ";
         default = "deployment";
-        type = types.enum ["deployment" "daemonset"];
+        type = types.enum ["deployment" "daemonSet"];
       };
     };
 
@@ -29,7 +29,6 @@ with k8s;
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
-          replicas = 1;
           selector.matchLabels.app = name;
           template = {
             metadata.name = name;
@@ -54,6 +53,8 @@ with k8s;
                 configMap.name = name;
               };
             };
+          } // optionalAttrs (config.kind != "daemonSet") {
+            spec.replicas = 1;
           };
         };
       };
