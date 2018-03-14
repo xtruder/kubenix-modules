@@ -22,6 +22,7 @@
   ./vault.nix
   ./vault-ui.nix
   ./vault-controller.nix
+  ./vault-login.nix
   ./logstash.nix
   ./mariadb.nix
   ./influxdb.nix

@@ -122,6 +122,10 @@ in {
       configuration.imports = [./test/vault-ui.nix globalConfig];
     };
 
+    vault-login = kubenix.buildResources {
+      configuration.imports = [./test/vault-login.nix globalConfig];
+    };
+
     logstash = kubenix.buildResources {
       configuration.imports = [./test/logstash.nix globalConfig];
     };
