@@ -13,6 +13,12 @@ let
 in {
   services = import ./services/module-list.nix;
 
+  examples = {
+    ca-deployer = kubenix.buildResources {
+      configuration.imports = [./examples/deployer/ca-deployer.nix globalConfig];
+    };
+  };
+
   tests = {
     rabbitmq = kubenix.buildResources {
       configuration.imports = [./test/rabbitmq.nix globalConfig];
