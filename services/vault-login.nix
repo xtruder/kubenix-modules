@@ -21,7 +21,7 @@ with k8s;
           type = types.str;
         };
 
-        cert = mkOption {
+        caCert = mkOption {
           description = "Name of the secret for vault cert";
           type = types.nullOr types.str;
           default = null;
@@ -63,7 +63,7 @@ with k8s;
                 image = "vault";
                 imagePullPolicy = "IfNotPresent";
                 env = {
-                  VAULT_CACERT = mkIf (config.vault.cert != null) {
+                  VAULT_CACERT = mkIf (config.vault.caCert != null) {
                     value = "/etc/certs/vault/ca.crt";
                   };
                   VAULT_ADDR.value = config.vault.address;
@@ -74,7 +74,7 @@ with k8s;
                     jwt=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token) > /vault/token
                   echo "vault token retrived"
                 ''];
-                volumeMounts."/etc/certs/vault" = mkIf (config.vault.cert != null) {
+                volumeMounts."/etc/certs/vault" = mkIf (config.vault.caCert != null) {
                   name = "vault-cert";
                   mountPath = "/etc/certs/vault";
                 };
@@ -96,12 +96,12 @@ with k8s;
                   done
                 ''];
                 env = {
-                  VAULT_CACERT = mkIf (config.vault.cert != null) {
+                  VAULT_CACERT = mkIf (config.vault.caCert != null) {
                     value = "/etc/certs/vault/ca.crt";
                   };
                   VAULT_ADDR.value = config.vault.address;
                 };
-                volumeMounts."/etc/certs/vault" = mkIf (config.vault.cert != null) {
+                volumeMounts."/etc/certs/vault" = mkIf (config.vault.caCert != null) {
                   name = "vault-cert";
                   mountPath = "/etc/certs/vault";
                 };
@@ -134,8 +134,8 @@ with k8s;
                   mountPath = "/vault";
                 }];
               };
-              volumes.vault-cert = mkIf (config.vault.cert != null) {
-                secret.secretName = config.vault.cert;
+              volumes.vault-cert = mkIf (config.vault.caCert != null) {
+                secret.secretName = config.vault.caCert;
               };
               volumes.vault-token.emptyDir = {};
             };
