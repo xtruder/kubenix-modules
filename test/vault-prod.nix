@@ -93,26 +93,23 @@ in {
     }];
   };
 
+  kubernetes.modules.vault-k8s-deployer-login = {
+    module = "vault-login";
+    configuration = {
+      vault = {
+        address = vault;
+        role = "deployer";
+        caCert = "vault-cert";
+      };
+      secretName = "vault-deployer-login-token";
+      tokenRenewPeriod = 60;
+    };
+  };
+
   kubernetes.modules.vault-deployer = {
     module = "deployer";
 
     configuration.kubernetes.resources.deployments.deployer.spec.template.spec = {
-      initContainers= [{
-        name = "vault-login";
-        image = "vault";
-        imagePullPolicy = "IfNotPresent";
-        command = ["sh" "-ec" ''
-          vault write -address=${vault} -ca-cert=/etc/certs/vault/ca.crt -field=token auth/kubernetes/login role=deployer jwt=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token) > /vault/token
-          echo "Token retrived"
-        ''];
-        volumeMounts = [{
-          name = "vault-cert";
-          mountPath = "/etc/certs/vault";
-        } {
-          name = "vault-token";
-          mountPath = "/vault";
-        }];
-      }];
       containers.deployer.volumeMounts = [{
         name = "vault-cert";
         mountPath = "/etc/certs/vault";
@@ -120,34 +117,14 @@ in {
         name = "vault-token";
         mountPath = "/vault";
       }];
-      containers.token-renewer = {
-        image = "vault";
-        imagePullPolicy = "IfNotPresent";
-        command = ["sh" "-ec" ''
-          export VAULT_TOKEN=$(cat /vault/token)
-
-          while true; do
-            echo "renewing token"
-            vault token renew -address=${vault} -ca-cert=/etc/certs/vault/ca.crt $(cat /vault/token) >/dev/null
-            sleep 1800
-          done
-        ''];
-        volumeMounts = [{
-          name = "vault-cert";
-          mountPath = "/etc/certs/vault";
-        } {
-          name = "vault-token";
-          mountPath = "/vault";
-        }];
-      };
 
       volumes.vault-cert.secret.secretName = "vault-cert";
-      volumes.vault-token.emptyDir = {};
+      volumes.vault-token.secret.secretName = "vault-deployer-login-token";
     };
     configuration.configuration = {
       terraform.backend.etcdv3 = {
         endpoints = ["http://etcd:2379"];
-        prefix = "deployer/";
+        prefix = "vault-deployer/";
       };
 
       provider.vault = {
@@ -258,21 +235,6 @@ in {
     };
   };
 
-  kubernetes.resources.clusterRoleBindings.vault-deployer-tokenreview-binding = {
-    apiVersion = "rbac.authorization.k8s.io/v1beta1";
-    metadata.name = "vault-deployer-tokenreview-binding";
-    roleRef = {
-      apiGroup = "rbac.authorization.k8s.io";
-      kind = "ClusterRole";
-      name = "system:auth-delegator";
-    };
-    subjects = [{
-      kind = "ServiceAccount";
-      name = "vault-deployer";
-      namespace = "default";
-    }];
-  };
-
   # create dummy certificate for bootstraping vault
   kubernetes.modules.vault-bootstraper = {
     module = "deployer";
@@ -375,7 +337,7 @@ in {
       resource.vault_generic_secret.auth_kubernetes_role_vault_deployer = {
         path = "auth/kubernetes/role/deployer";
         data_json = builtins.toJSON {
-          bound_service_account_names = "vault-deployer";
+          bound_service_account_names = "vault-k8s-deployer-login";
           bound_service_account_namespaces = "default";
           policies = ["default" "provisioner"];
           period = "1h";
