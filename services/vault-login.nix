@@ -82,6 +82,27 @@ with k8s;
                   name = "vault-token";
                   mountPath = "/vault";
                 };
+              } {
+                name = "write-token";
+                image = "lachlanevenson/k8s-kubectl:v1.9.4";
+                imagePullPolicy = "IfNotPresent";
+                command = ["sh" "-ec" ''
+                  export VAULT_TOKEN=$(cat /vault/token | base64)
+
+                  cat <<EOF | kubectl apply -f -
+                  apiVersion: v1
+                  kind: Secret
+                  metadata:
+                    name: ${config.secretName}
+                    namespace: ${module.namespace}
+                  data:
+                    token: $VAULT_TOKEN
+                  EOF
+                ''];
+                volumeMounts = [{
+                  name = "vault-token";
+                  mountPath = "/vault";
+                }];
               }];
               containers.token-renewer = {
                 image = "vault";
@@ -109,30 +130,6 @@ with k8s;
                   name = "vault-token";
                   mountPath = "/vault";
                 };
-              };
-              containers.secret-updater = {
-                image = "lachlanevenson/k8s-kubectl:v1.9.4";
-                imagePullPolicy = "IfNotPresent";
-                command = ["sh" "-ec" ''
-                  export VAULT_TOKEN=$(cat /vault/token | base64)
-
-                  while true; do
-                    cat <<EOF | kubectl apply -f -
-                  apiVersion: v1
-                  kind: Secret
-                  metadata:
-                    name: ${config.secretName}
-                    namespace: ${module.namespace}
-                  data:
-                    token: $VAULT_TOKEN
-                  EOF
-                    sleep ${toString config.tokenRenewPeriod}
-                  done
-                ''];
-                volumeMounts = [{
-                  name = "vault-token";
-                  mountPath = "/vault";
-                }];
               };
               volumes.vault-cert = mkIf (config.vault.caCert != null) {
                 secret.secretName = config.vault.caCert;
