@@ -14,6 +14,10 @@ in {
   services = import ./services/module-list.nix;
 
   examples = {
+    vault-prod = kubenix.buildResources {
+      configuration.imports = [./examples/vault/vault-prod.nix globalConfig];
+    };
+
     ca-deployer = kubenix.buildResources {
       configuration.imports = [./examples/deployer/ca-deployer.nix globalConfig];
     };
@@ -110,10 +114,6 @@ in {
 
     vault = kubenix.buildResources {
       configuration.imports = [./test/vault.nix globalConfig];
-    };
-
-    vault-prod = kubenix.buildResources {
-      configuration.imports = [./test/vault-prod.nix globalConfig];
     };
 
     vault-controller = kubenix.buildResources {

@@ -3,7 +3,7 @@
 let
   vault = "https://vault:8200";
 in {
-  require = import ../services/module-list.nix;
+  require = import ../../services/module-list.nix;
 
   kubernetes.modules.etcd.module = "etcd";
 
