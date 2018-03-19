@@ -27,4 +27,5 @@
   ./mariadb.nix
   ./influxdb.nix
   ./kubelog.nix
+  ./secret-restart-controller.nix
 ]

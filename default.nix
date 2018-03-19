@@ -143,5 +143,9 @@ in {
     kubelog = kubenix.buildResources {
       configuration.imports = [./test/kubelog.nix globalConfig];
     };
+
+    secret-restart-controller = kubenix.buildResources {
+      configuration.imports = [./test/secret-restart-controller.nix globalConfig];
+    };
   };
 }
