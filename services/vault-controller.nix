@@ -106,8 +106,8 @@ with k8s;
 
         caCert = mkOption {
           description = "Vault ca cert secret name";
-          type = types.str;
-          default = "vault";
+          type = types.nullOr types.str;
+          default = null;
         };
       };
     };
