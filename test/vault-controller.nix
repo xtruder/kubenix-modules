@@ -17,6 +17,7 @@
   kubernetes.modules.vault-controller = {
     module = "vault-controller";
     configuration = {
+      namespace = "default";
       vault.address = "http://vault:8200";
       vault.token.name = "vault-token";
     };

@@ -110,6 +110,12 @@ with k8s;
           default = null;
         };
       };
+
+      namespace = mkOption {
+        type = types.nullOr types.str;
+        description = "Namespace where controller manages secrets";
+        default = null;
+      };
     };
 
     config = {
@@ -128,10 +134,11 @@ with k8s;
               command = [
                 "/kube-vault-controller"
                 "-sync-period=${config.syncPeriod}"
-                "-namespace=${module.namespace}"
               ] ++ optionals (config.vault.saauth) [
                 "-saauth"
                 "-vaultrole=${config.vault.role}"
+              ] ++ optionals (config.namespace != null) [
+                "-namespace=${config.namespace}"
               ];
               env = {
                 VAULT_ADDR.value = config.vault.address;
@@ -163,6 +170,7 @@ with k8s;
         metadata.labels.app = name;
       };
 
+      # binding for tokenreview kubernetes API
       kubernetes.resources.clusterRoleBindings.vault-controller-tokenreview-binding = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = "${module.namespace}-${module.name}-tokenreview-binding";
@@ -178,7 +186,7 @@ with k8s;
         }];
       };
 
-      kubernetes.resources.clusterRoleBindings.vault-controller = {
+      kubernetes.resources.clusterRoleBindings.vault-controller = mkIf (config.namespace == null) {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = "${module.namespace}-${module.name}";
         roleRef = {
@@ -193,7 +201,38 @@ with k8s;
         }];
       };
 
-      kubernetes.resources.clusterRoles.vault-controller = {
+      kubernetes.resources.roleBindings.vault-controller = mkIf (config.namespace != null) {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = module.name;
+        roleRef = {
+          apiGroup = "rbac.authorization.k8s.io";
+          kind = "Role";
+          name = "vault-controller";
+        };
+        subjects = [{
+          kind = "ServiceAccount";
+          name = name;
+          namespace = module.namespace;
+        }];
+      };
+
+      kubernetes.resources.clusterRoles.vault-controller = mkIf (config.namespace == null) {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = "vault-controller";
+        rules = [{
+          apiGroups = ["vaultproject.io"];
+          resources = [
+            "secretclaims"
+          ];
+          verbs = ["get" "list" "watch"];
+        } {
+          apiGroups = [""];
+          resources = ["secrets"];
+          verbs = ["get" "watch" "list" "create" "update" "patch" "delete"];
+        }];
+      };
+
+      kubernetes.resources.roles.vault-controller = mkIf (config.namespace != null) {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = "vault-controller";
         rules = [{
