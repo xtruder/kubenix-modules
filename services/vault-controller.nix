@@ -157,6 +157,20 @@ with k8s;
                 name = "cert";
                 mountPath = "/var/lib/vault/ssl/";
               };
+              livenessProbe = mkIf (config.vault.caCert != null) {
+                exec.command = ["/bin/sh" "-c" ''
+                  if [ ! -f /tmp/ca.crt  ]; then
+                    cat /var/lib/vault/ssl/ca.crt > /tmp/ca.crt
+                  fi
+
+                  if [ "$(cat /var/lib/vault/ssl/ca.crt)" == "$(cat /tmp/ca.crt)" ]; then
+                    exit 0
+                  else
+                    exit 1
+                  fi
+                ''];
+                periodSeconds = 30;
+              };
             };
             spec.volumes.cert = mkIf (config.vault.caCert != null) {
               secret.secretName = config.vault.caCert;
