@@ -373,6 +373,10 @@ in {
     };
   };
 
+  kubernetes.modules.secret-restart-controller = {
+    module = "secret-restart-controller";
+  };
+
   kubernetes.modules.vault-controller-cert-secret-claim = {
     name = "vault-cert";
     module = "secret-claim";
