@@ -895,7 +895,7 @@ with lib;
                 # we can't simply achive this with k8s statefulsets
                 livenessProbe = {
                   exec.command = ["sh" "-c" ''
-                    redis-cli ${optionalString (config.password != null) "-a $REDIS_PASSWORD"} -p 26379 info | grep master0 | grep up
+                    redis-cli ${optionalString (config.password != null) "-a $REDIS_PASSWORD"} -p 26379 info | grep master0 | grep ok
                   ''];
                   initialDelaySeconds = 120; # wait for masters to be up for at least 2minutes
                   timeoutSeconds = 5;
