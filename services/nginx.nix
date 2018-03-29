@@ -15,7 +15,7 @@ with lib;
       replicas = mkOption {
         description = "Number of nginx replicas";
         type = types.int;
-        default = 3;
+        default = 1;
       };
 
       configuration = mkOption {
