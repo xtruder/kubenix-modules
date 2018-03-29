@@ -35,6 +35,7 @@ with lib;
           template = {
             metadata.labels.app = name;
             spec = {
+              serviceAccountName = name;
               containers.nginx = {
                 image = config.image;
                 ports = [{
@@ -62,6 +63,11 @@ with lib;
             };
           };
         };
+      };
+
+      kubernetes.resources.serviceAccounts.nginx = {
+        metadata.name = name;
+        metadata.labels.app = name;
       };
 
       kubernetes.resources.configMaps = mkIf (config.configuration != null) {
