@@ -19,15 +19,13 @@
   };
 
   kubernetes.modules.nginx = {
-    configuration.kubernetes.modules.vault-login-sidecar = {
-      configuration = {
-        resourcePath = ["deployments" "nginx" "spec" "template" "spec"];
-        serviceAccountName = "nginx";
-        mountContainer = "nginx";
-	      vault.address = "http://vault:8200";
-	      vault.role = "vault-login";
-	      tokenRenewPeriod = 60;
-      };
+    configuration.kubernetes.modules.vault-login-sidecar.configuration = {
+      resourcePath = ["deployments" "nginx" "spec" "template" "spec"];
+      serviceAccountName = "nginx";
+      mountContainer = "nginx";
+      vault.address = "http://vault:8200";
+      vault.role = "vault-login";
+      tokenRenewPeriod = 60;
     };
   };
 
