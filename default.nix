@@ -116,6 +116,10 @@ in {
       configuration.imports = [./test/vault.nix globalConfig];
     };
 
+    vault-prod = kubenix.buildResources {
+      configuration.imports = [./test/vault-prod.nix globalConfig];
+    };
+
     vault-controller = kubenix.buildResources {
       configuration.imports = [./test/vault-controller.nix globalConfig];
     };

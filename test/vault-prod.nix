@@ -6,11 +6,8 @@
   kubernetes.modules.vault = {
     module = "vault";
     configuration = {
-      listenInClusterTLS = true;
+      configuration.storage.inmem = {};
+      tls.additionalDomains = ["vault.example.com"];
     };
-  };
-
-  kubernetes.resources.secrets.vault-token.data = {
-    token = k8s.toBase64 "e2bf6c5e-88cc-2046-755d-7ba0bdafef35";
   };
 }
