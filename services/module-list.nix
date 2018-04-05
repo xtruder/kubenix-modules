@@ -28,4 +28,5 @@
   ./influxdb.nix
   ./kubelog.nix
   ./secret-restart-controller.nix
+  ./k8s-request-cert.nix
 ]
