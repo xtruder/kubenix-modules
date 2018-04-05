@@ -6,13 +6,7 @@
   kubernetes.modules.vault = {
     module = "vault";
     configuration = {
-      dev = {
-        enable = true;
-        token = {
-          name = "vault-token";
-          key = "token";
-        };
-      };
+      listenInClusterTLS = true;
     };
   };
 

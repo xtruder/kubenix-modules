@@ -48,6 +48,12 @@ with k8s;
         default = null;
       };
 
+      listenInClusterTLS = mkOption {
+        description = "Whether to listen in cluster TLS";
+        type = types.bool;
+        default = false;
+      };
+
       configReloadPeriod = mkOption {
         description = "Vault config reload period";
         type = types.int;
@@ -56,8 +62,8 @@ with k8s;
     };
 
     config = {
-      configuration = mkIf (!config.dev.enable) (if (config.tlsSecret != null) then {
-        listener = [{
+      configuration = mkIf (!config.dev.enable) {
+        listener = (if (config.tlsSecret != null) then [{
           tcp = {
             address = "0.0.0.0:8200";
             tls_cert_file = "/var/lib/vault/ssl/tls.crt";
@@ -68,15 +74,19 @@ with k8s;
             address = "0.0.0.0:8400";
             tls_disable = true;
           };
-        }];
-      } else {
-        listener = [{
+        }] else [{
           tcp = {
             address = "0.0.0.0:8200";
             tls_disable = true;
           };
+        }]) ++ optionals config.listenInClusterTLS [{
+          tcp = {
+            address = "0.0.0.0:8300";
+            tls_cert_file = "/var/lib/vault/inclusterssl/tls.crt";
+            tls_key_file = "/var/lib/vault/inclusterssl/tls.key";
+          };
         }];
-      });
+      };
 
       kubernetes.resources.deployments.vault = {
         metadata.name = name;
@@ -88,6 +98,20 @@ with k8s;
             metadata.name = name;
             metadata.labels.app = name;
             spec = {
+              serviceAccountName = name;
+              initContainers = mkIf config.listenInClusterTLS [{
+                name = "request-cert";
+                image = "cockroachdb/cockroach-k8s-request-cert:0.3";
+                imagePullPolicy = "IfNotPresent";
+                command = ["/bin/ash" "-ecx" ''
+                  /request-cert -namespace=''${POD_NAMESPACE} -certs-dir=/certs -type=node -addresses=vault -symlink-ca-from=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                ''];
+                env.POD_NAMESPACE.valueFrom.fieldRef.fieldPath = "metadata.namespace";
+                volumeMounts.incluster-cert = {
+                  mountPath = "/certs";
+                  name = "incluster-cert";
+                };
+              }];
               containers.vault = {
                 image = config.image;
                 args = ["server"] ++ optionals config.dev.enable ["-dev"];
@@ -116,6 +140,9 @@ with k8s;
                   containerPort = 8200;
                   name = "vault";
                 } {
+                  containerPort = 8300;
+                  name = "vault-incluster";
+                } {
                   containerPort = 8400;
                   name = "vault-unsecure";
                 } {
@@ -143,6 +170,9 @@ with k8s;
               volumes.cert = mkIf (config.tlsSecret != null) {
                 secret.secretName = config.tlsSecret;
               };
+              volumes.incluster-cert = mkIf config.listenInClusterTLS {
+                emptyDir = {};
+              };
             };
           };
         };
@@ -168,6 +198,67 @@ with k8s;
       kubernetes.resources.serviceAccounts.vault = {
         metadata.name = module.name;
         metadata.labels.app = module.name;
+      };
+
+      kubernetes.resources.roles.vault = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = name;
+        metadata.labels.app = name;
+        rules = [{
+          apiGroups = [""];
+          resources = ["secrets"];
+          verbs = ["list"];
+        } {
+          apiGroups = [""];
+          resources = ["secrets"];
+          verbs = ["create"];
+        } {
+          apiGroups = [""];
+          resources = ["secrets"];
+          verbs = ["update" "get" "patch"];
+        }];
+      };
+
+      kubernetes.resources.roleBindings.vault = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = name;
+        metadata.labels.app = name;
+        roleRef = {
+          apiGroup = "rbac.authorization.k8s.io";
+          kind = "Role";
+          name = name;
+        };
+        subjects = [{
+          kind = "ServiceAccount";
+          name = name;
+        }];
+      };
+
+      kubernetes.resources.clusterRoles.vault = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = "vault-csr";
+        metadata.labels.app = "vault-csr";
+        rules = [{
+          apiGroups = ["certificates.k8s.io"];
+          resources = ["certificatesigningrequests"];
+          verbs = ["create" "get" "list" "watch"];
+        }];
+      };
+
+      kubernetes.resources.clusterRoleBindings.vault = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = "${module.namespace}-${name}-csr";
+        metadata.labels.app = name;
+        roleRef = {
+          apiGroup = "rbac.authorization.k8s.io";
+          kind = "ClusterRole";
+          name = "vault-csr";
+        };
+        subjects = [{
+          kind = "ServiceAccount";
+          name = name;
+          namespace = module.namespace;
+        }];
       };
     };
   };
