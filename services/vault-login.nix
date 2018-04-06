@@ -6,6 +6,7 @@ with k8s;
 {
   # kubenix module that implements vault login sidecar that 
   kubernetes.moduleDefinitions.vault-login-sidecar.prefixResources = false;
+  kubernetes.moduleDefinitions.vault-login-sidecar.assignAsDefaults = true;
   kubernetes.moduleDefinitions.vault-login-sidecar.module = { name, module, config, ... }: {
     options = {
       resourcePath = mkOption {
