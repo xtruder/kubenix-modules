@@ -4,7 +4,6 @@ with lib;
 with k8s;
 
 {
-  kubernetes.moduleDefinitions.k8s-request-cert.assignAsDefaults = true;
   kubernetes.moduleDefinitions.k8s-request-cert.prefixResources = false;
   kubernetes.moduleDefinitions.k8s-request-cert.module = { name, module, config, ... }: {
     options = {
