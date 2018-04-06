@@ -105,9 +105,10 @@ with k8s;
             done
           ''];
           env = {
-            VAULT_CACERT = mkIf (config.vault.caCert != null) {
-              value = "/etc/certs/vault/ca.crt";
-            };
+            VAULT_CACERT.value =
+              if (config.vault.caCert != null)
+              then "/etc/certs/vault/ca.crt"
+              else "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
             VAULT_ADDR.value = config.vault.address;
           };
           volumeMounts."/etc/certs/vault" = mkIf (config.vault.caCert != null) {
