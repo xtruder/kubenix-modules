@@ -1,126 +1,193 @@
 { config, k8s, ... }:
 
 let
-  vault = "https://vault:8200";
+  vault = "https://vault:8300";
+  namespace = "vault";
 in {
   require = import ../../services/module-list.nix;
 
-  kubernetes.modules.etcd.module = "etcd";
+  kubernetes.resources.namespaces."${namespace}" = {};
 
-  # create dummy certificate for bootstraping vault
-  kubernetes.modules.ca-deployer = {
+  kubernetes.modules.etcd = {
+    inherit namespace;
+  };
+
+  kubernetes.modules.selfsigned-cert-deployer = {
+    inherit namespace;
+    configuration.secretName = "vault-cert";
+  };
+
+  kubernetes.modules.vault = {
+    inherit namespace;
+
+    configuration = {
+      tls.secret = "vault-cert";
+      configuration = {
+        storage.etcd = {
+          address = "http://etcd:2379";
+          etcd_api = "v3";
+          ha_enabled = "true";
+        };
+      };
+    };
+  };
+
+  kubernetes.modules.vault-controller-cert-secret-claim = {
+    inherit namespace;
+    name = "vault-cert";
+    module = "secret-claim";
+    configuration = {
+      type = "kubernetes.io/tls";
+      path = "pki/issue/vault";
+      renew = 300;
+      data = {
+        common_name = "vault.example.com";
+        ttl = "10m";
+        alt_names = "vault,vault.example.com";
+        ip_sans = "127.0.0.1";
+      };
+    };
+  };
+
+  kubernetes.modules.vault-controller = {
+    inherit namespace;
+    configuration.vault = {
+      address = vault;
+      saauth = true;
+    };
+  };
+
+  kubernetes.modules.secret-restart-controller = {
+    inherit namespace;
+  };
+
+  kubernetes.modules.vault-bootstraper = {
+    inherit namespace;
+
     module = "deployer";
+
+    configuration.vars.vault_token.valueFrom.secretKeyRef ={
+      name = "vault-root-token";
+      key = "token";
+    };
 
     configuration.runAsJob = true;
     configuration.configuration = {
-      provider.kubernetes = {
-        host = "https://kubernetes";
-        cluster_ca_certificate = ''''${file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")}'';
-        token = ''''${file("/var/run/secrets/kubernetes.io/serviceaccount/token")}''; 
-      };
+      variable.vault_token = {};
 
-      resource.tls_private_key.ca = {
-        algorithm = "ECDSA";
-        ecdsa_curve = "P521";
-      };
-
-      resource.tls_self_signed_cert.ca = {
-        key_algorithm = ''''${tls_private_key.ca.algorithm}'';
-        private_key_pem = ''''${tls_private_key.ca.private_key_pem}'';
-        is_ca_certificate = true;
-        validity_period_hours = 26280;
-        early_renewal_hours = 8760;
-        allowed_uses = ["cert_signing"];
-        subject = {
-          common_name = "Dummy Ltd. Root";
-        };
-      };
-
-      resource.tls_private_key.vault = {
-        algorithm = "ECDSA";
-        ecdsa_curve = "P521";
-      };
-
-      resource.tls_cert_request.vault = {
-        key_algorithm = ''''${tls_private_key.vault.algorithm}'';
-        private_key_pem = ''''${tls_private_key.vault.private_key_pem}'';
-        dns_names = ["vault"];
-        ip_addresses = ["127.0.0.1"];
-        subject.common_name = "vault";
-      };
-
-      resource.tls_locally_signed_cert.vault = {
-        cert_request_pem = ''''${tls_cert_request.vault.cert_request_pem}'';
-        ca_key_algorithm = ''''${tls_private_key.ca.algorithm}'';
-        ca_private_key_pem = ''''${tls_private_key.ca.private_key_pem}'';
-        ca_cert_pem = ''''${tls_self_signed_cert.ca.cert_pem}'';
-        validity_period_hours = 17520;
-        early_renewal_hours = 8760;
-        allowed_uses = ["server_auth"];
-      };
-
-      resource.kubernetes_secret.vault = {
-        metadata.name = "vault-cert";
-        data = {
-          "ca.crt" = ''''${tls_self_signed_cert.ca.cert_pem}'';
-          "tls.key" = ''''${tls_private_key.vault.private_key_pem}'';
-          "tls.crt" = ''''${tls_locally_signed_cert.vault.cert_pem}'';
-        };
-        type = "kubernetes.io/tls";
-      };
-    };
-  };
-
-  kubernetes.resources.roles.ca-deployer = {
-    apiVersion = "rbac.authorization.k8s.io/v1beta1";
-    rules = [{
-      apiGroups = [""];
-      resources = ["secrets"];
-      verbs = ["get" "create" "update" "patch" "delete"];
-    }];
-  };
-
-  kubernetes.resources.roleBindings.ca-deployer = {
-    apiVersion = "rbac.authorization.k8s.io/v1beta1";
-    roleRef = {
-      apiGroup = "rbac.authorization.k8s.io";
-      kind = "Role";
-      name = "ca-deployer";
-    };
-    subjects = [{
-      kind = "ServiceAccount";
-      name = "ca-deployer";
-    }];
-  };
-
-  kubernetes.modules.vault-k8s-deployer-login = {
-    module = "vault-login";
-    configuration = {
-      vault = {
+      provider.vault = {
         address = vault;
-        role = "deployer";
-        caCert = "vault-cert";
+        token = ''''${var.vault_token}'';
+        ca_cert_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
       };
-      secretName = "vault-deployer-login-token";
-      tokenRenewPeriod = 60;
+
+      resource.vault_auth_backend.kubernetes = {
+        type = "kubernetes";
+      };
+
+      resource.vault_generic_secret.auth_kubernetes_config = {
+        path = "auth/kubernetes/config";
+        data_json = ''{
+            "kubernetes_host": "https://kubernetes.default:443",
+            "kubernetes_ca_cert": "''${replace(file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"), "\n", "\\n")}"
+          }'';
+        depends_on = ["vault_auth_backend.kubernetes"];
+      };
+
+      resource.vault_policy.provisioner = {
+        name = "provisioner";
+        policy = ''
+          # Manage auth backends broadly across Vault
+          path "auth/*" {
+            capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+          }
+
+          # List, create, update, and delete auth backends
+          path "sys/auth/*" {
+            capabilities = ["create", "read", "update", "delete", "sudo"]
+          }
+
+          # List existing policies
+          path "sys/policy" {
+            capabilities = ["read"]
+          }
+
+          # Create and manage ACL policies
+          path "sys/policy/*" {
+            capabilities = ["create", "read", "update", "delete", "list"]
+          }
+
+          # List existing audits
+          path "sys/audit" {
+            capabilities = ["read", "sudo"]
+          }
+
+          # Create and manage audit backends
+          path "sys/audit/*" {
+            capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+          }
+
+          path "sys/mounts" {
+            capabilities = ["read"]
+          }
+
+          path "sys/mounts/*" {
+            capabilities = ["create", "read", "update", "delete", "list"]
+          }
+
+          # List, create, update, and delete key/value secrets
+          path "secret/*" {
+            capabilities = ["create", "read", "update", "delete", "list"]
+          }
+
+          # List, create, update, and delete root cert
+          path "rootca/*" {
+            capabilities = ["create", "read", "update", "delete", "list"]
+          }
+
+          # List, create, update, and delete intermeddiate cert
+          path "pki/*" {
+            capabilities = ["create", "read", "update", "delete", "list"]
+          }
+        '';
+      };
+
+      resource.vault_generic_secret.auth_kubernetes_role_vault_deployer = {
+        path = "auth/kubernetes/role/deployer";
+        data_json = builtins.toJSON {
+          bound_service_account_names = "vault-deployer";
+          bound_service_account_namespaces = namespace;
+          policies = ["default" "provisioner"];
+          period = "1h";
+        };
+        depends_on = [
+          "vault_generic_secret.auth_kubernetes_config"
+          "vault_policy.provisioner"
+        ];
+      };
     };
   };
 
   kubernetes.modules.vault-deployer = {
+    inherit namespace;
+
     module = "deployer";
 
-    configuration.kubernetes.resources.deployments.deployer.spec.template.spec = {
-      containers.deployer.volumeMounts = [{
-        name = "vault-cert";
-        mountPath = "/etc/certs/vault";
-      } {
-        name = "vault-token";
-        mountPath = "/vault";
-      }];
+    configuration.kubernetes.modules.vault-login-sidecar = {
+      inherit namespace;
 
-      volumes.vault-cert.secret.secretName = "vault-cert";
-      volumes.vault-token.secret.secretName = "vault-deployer-login-token";
+      configuration = {
+        resourcePath = ["deployments" "deployer" "spec" "template" "spec"];
+        serviceAccountName = "vault-deployer";
+        mountContainer = "deployer";
+        vault = {
+          address = vault;
+          role = "deployer";
+        };
+        tokenRenewPeriod = 60;
+      };
     };
+
     configuration.configuration = {
       terraform.backend.etcdv3 = {
         endpoints = ["http://etcd:2379"];
@@ -130,7 +197,7 @@ in {
       provider.vault = {
         address = vault;
         token = ''''${file("/vault/token")}'';
-        ca_cert_file = "/etc/certs/vault/ca.crt";
+        ca_cert_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
       };
 
       resource.vault_mount.rootca = {
@@ -226,7 +293,7 @@ in {
         path = "auth/kubernetes/role/vault-controller";
         data_json = builtins.toJSON {
           bound_service_account_names = "vault-controller";
-          bound_service_account_namespaces = "default";
+          bound_service_account_namespaces = namespace;
           policies = ["default" "reader"];
           period = "1h";
         };
@@ -235,166 +302,9 @@ in {
     };
   };
 
-  # create dummy certificate for bootstraping vault
-  kubernetes.modules.vault-bootstraper = {
-    module = "deployer";
-
-    configuration.vars.vault_token.valueFrom.secretKeyRef ={
-      name = "vault-root-token";
-      key = "token";
-    };
-
-    configuration.kubernetes.resources.jobs.deployer.spec.template.spec = {
-      containers.deployer.volumeMounts = [{
-        name = "vault-cert";
-        mountPath = "/etc/certs/vault";
-      }];
-
-      volumes.vault-cert.secret.secretName = "vault-cert";
-    };
-
-    configuration.runAsJob = true;
-    configuration.configuration = {
-      variable.vault_token = {};
-
-      provider.vault = {
-        address = vault;
-        token = ''''${var.vault_token}'';
-        ca_cert_file = "/etc/certs/vault/ca.crt";
-      };
-
-      resource.vault_auth_backend.kubernetes = {
-        type = "kubernetes";
-      };
-
-      resource.vault_generic_secret.auth_kubernetes_config = {
-        path = "auth/kubernetes/config";
-        data_json = ''{
-            "kubernetes_host": "https://kubernetes:443",
-            "kubernetes_ca_cert": "''${replace(file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"), "\n", "\\n")}"
-          }'';
-        depends_on = ["vault_auth_backend.kubernetes"];
-      };
-
-      resource.vault_policy.provisioner = {
-        name = "provisioner";
-        policy = ''
-          # Manage auth backends broadly across Vault
-          path "auth/*" {
-            capabilities = ["create", "read", "update", "delete", "list", "sudo"]
-          }
-
-          # List, create, update, and delete auth backends
-          path "sys/auth/*" {
-            capabilities = ["create", "read", "update", "delete", "sudo"]
-          }
-
-          # List existing policies
-          path "sys/policy" {
-            capabilities = ["read"]
-          }
-
-          # Create and manage ACL policies
-          path "sys/policy/*" {
-            capabilities = ["create", "read", "update", "delete", "list"]
-          }
-
-          # List existing audits
-          path "sys/audit" {
-            capabilities = ["read", "sudo"]
-          }
-
-          # Create and manage audit backends
-          path "sys/audit/*" {
-            capabilities = ["create", "read", "update", "delete", "list", "sudo"]
-          }
-
-          path "sys/mounts" {
-            capabilities = ["read"]
-          }
-
-          path "sys/mounts/*" {
-            capabilities = ["create", "read", "update", "delete", "list"]
-          }
-
-          # List, create, update, and delete key/value secrets
-          path "secret/*" {
-            capabilities = ["create", "read", "update", "delete", "list"]
-          }
-
-          # List, create, update, and delete root cert
-          path "rootca/*" {
-            capabilities = ["create", "read", "update", "delete", "list"]
-          }
-
-          # List, create, update, and delete intermeddiate cert
-          path "pki/*" {
-            capabilities = ["create", "read", "update", "delete", "list"]
-          }
-        '';
-      };
-
-      resource.vault_generic_secret.auth_kubernetes_role_vault_deployer = {
-        path = "auth/kubernetes/role/deployer";
-        data_json = builtins.toJSON {
-          bound_service_account_names = "vault-k8s-deployer-login";
-          bound_service_account_namespaces = "default";
-          policies = ["default" "provisioner"];
-          period = "1h";
-        };
-        depends_on = [
-          "vault_generic_secret.auth_kubernetes_config"
-          "vault_policy.provisioner"
-        ];
-      };
-    };
-  };
-
-  kubernetes.modules.vault = {
-    module = "vault";
-    configuration = {
-      tlsSecret = "vault-cert";
-      configuration = {
-        storage.etcd = {
-          address = "http://etcd:2379";
-          etcd_api = "v3";
-          ha_enabled = "true";
-        };
-      };
-    };
-  };
-
-  kubernetes.modules.vault-controller = {
-    module = "vault-controller";
-    configuration.vault = {
-      address = vault;
-      saauth = true;
-      caCert = "vault-cert";
-    };
-  };
-
-  kubernetes.modules.secret-restart-controller = {
-    module = "secret-restart-controller";
-  };
-
-  kubernetes.modules.vault-controller-cert-secret-claim = {
-    name = "vault-cert";
-    module = "secret-claim";
-    configuration = {
-      type = "kubernetes.io/tls";
-      path = "pki/issue/vault";
-      renew = 300;
-      data = {
-        common_name = "vault.example.com";
-        ttl = "10m";
-        alt_names = "vault,vault.example.com";
-        ip_sans = "127.0.0.1";
-      };
-    };
-  };
-
   kubernetes.modules.logstash = {
-    module = "logstash";
+    inherit namespace;
+
     configuration.configuration = ''
       input {
         tcp {
@@ -418,6 +328,8 @@ in {
   };
 
   kubernetes.resources.services.logstash-vault = {
+    metadata.namespace = namespace;
+
     spec = {
       ports = [{
         name = "logs";
