@@ -67,6 +67,7 @@ with k8s;
       kubernetes.modules.k8s-request-cert = mkIf (!config.dev.enable) {
         module = "k8s-request-cert";
         name = "${module.name}-k8s-request-cert";
+        namespace = module.namespace;
         configuration = {
           kubernetes.resources.statefulSets.vault.spec.serviceName = name;
           resourcePath = ["statefulSets" "vault" "spec" "template" "spec"];
