@@ -5,7 +5,6 @@ with k8s;
 
 {
   # kubenix module that implements vault login sidecar that 
-  kubernetes.moduleDefinitions.vault-login-sidecar.assignAsDefaults = true;
   kubernetes.moduleDefinitions.vault-login-sidecar.prefixResources = false;
   kubernetes.moduleDefinitions.vault-login-sidecar.module = { name, module, config, ... }: {
     options = {
@@ -23,6 +22,12 @@ with k8s;
         description = "Name of the container where to mount sidecar";
         type = types.nullOr types.str;
         default = null;
+      };
+
+      mountPath = mkOption {
+        description = "Token mount path";
+        type = types.path;
+        default = "/vault";
       };
 
       method = mkOption {
@@ -60,7 +65,7 @@ with k8s;
     config = mkMerge [{
       kubernetes.resources = (setAttrByPath config.resourcePath {
         initContainers = [{
-          name = "vault-login";
+          name = "${module.name}-vault-login";
           image = "vault";
           imagePullPolicy = "IfNotPresent";
           env = {
@@ -77,22 +82,21 @@ with k8s;
             echo "vault token retrived"
           ''];
           volumeMounts."/etc/certs/vault" = mkIf (config.vault.caCert != null) {
-            name = "vault-cert";
+            name = "${module.name}-vault-cert";
             mountPath = "/etc/certs/vault";
           };
           volumeMounts."/vault" = {
-            name = "vault-token";
+            name = "${module.name}-vault-token";
             mountPath = "/vault";
           };
         }];
-        containers.vault-token-mount = mkIf (config.mountContainer != null) {
-          name = config.mountContainer;
-          volumeMounts."/vault" = {
-            name = "vault-token";
-            mountPath = "/vault";
+        containers."${config.mountContainer}" = mkIf (config.mountContainer != null) {
+          volumeMounts."${module.name}-vault-token" = {
+            name = "${module.name}-vault-token";
+            mountPath = config.mountPath;
           };
         };
-        containers.vault-token-renewer = {
+        containers."${module.name}-token-renewer" = {
           image = "vault";
           imagePullPolicy = "IfNotPresent";
           command = ["sh" "-ec" ''
@@ -112,24 +116,23 @@ with k8s;
             VAULT_ADDR.value = config.vault.address;
           };
           volumeMounts."/etc/certs/vault" = mkIf (config.vault.caCert != null) {
-            name = "vault-cert";
+            name = "${module.name}-vault-cert";
             mountPath = "/etc/certs/vault";
           };
           volumeMounts."/vault" = {
-            name = "vault-token";
+            name = "${module.name}-vault-token";
             mountPath = "/vault";
           };
         };
-        volumes.vault-cert = mkIf (config.vault.caCert != null) {
+        volumes."${module.name}-vault-cert" = mkIf (config.vault.caCert != null) {
           secret.secretName = config.vault.caCert;
         };
-        volumes.vault-token.emptyDir = {};
+        volumes."${module.name}-vault-token".emptyDir = {};
       });
     }
     {
-      kubernetes.resources.clusterRoleBindings."${name}" = {
+      kubernetes.resources.clusterRoleBindings."${module.namespace}-${name}-vault-login" = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
         metadata.labels.app = name;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
