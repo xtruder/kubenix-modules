@@ -143,9 +143,10 @@ with k8s;
               env = {
                 VAULT_ADDR.value = config.vault.address;
                 VAULT_TOKEN = mkIf (!config.vault.saauth) (secretToEnv config.vault.token);
-                VAULT_CACERT = mkIf (config.vault.caCert != null) {
-                  value = "/var/lib/vault/ssl/ca.crt";
-                };
+                VAULT_CACERT.value =
+                  if (config.vault.caCert != null)
+                  then "/var/lib/vault/ssl/ca.crt"
+                  else "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
               };
               resources = {
                 requests.memory = "64Mi";
