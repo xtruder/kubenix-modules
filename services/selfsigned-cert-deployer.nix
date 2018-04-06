@@ -27,11 +27,12 @@ with lib;
         module = "deployer";
 
         name = module.name;
+        namespace = module.namespace;
 
         configuration.runAsJob = true;
         configuration.configuration = {
           provider.kubernetes = {
-            host = "https://kubernetes";
+            host = "https://kubernetes.default";
             cluster_ca_certificate = ''''${file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")}'';
             token = ''''${file("/var/run/secrets/kubernetes.io/serviceaccount/token")}''; 
           };
