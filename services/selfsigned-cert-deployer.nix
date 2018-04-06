@@ -80,10 +80,10 @@ with lib;
             metadata.namespace = module.namespace;
             data = {
               "ca.crt" = ''''${tls_self_signed_cert.ca.cert_pem}'';
-              "cert.key" = ''''${tls_private_key.key.private_key_pem}'';
-              "cert.crt" = ''''${tls_locally_signed_cert.cert.cert_pem}'';
+              "tls.crt" = ''''${tls_locally_signed_cert.cert.cert_pem}'';
+              "tls.key" = ''''${tls_private_key.key.private_key_pem}'';
             };
-            type = "Opaque";
+            type = "kubernetes.io/tls";
           };
         };
       };
