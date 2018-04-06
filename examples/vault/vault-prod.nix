@@ -173,8 +173,8 @@ in {
 
     module = "deployer";
 
-    configuration.kubernetes.modules.vault-login-sidecar = {
-      inherit namespace;
+    configuration.kubernetes.modules.vault-login = {
+      module = "vault-login-sidecar";
 
       configuration = {
         resourcePath = ["deployments" "deployer" "spec" "template" "spec"];
