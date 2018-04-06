@@ -151,5 +151,9 @@ in {
     secret-restart-controller = kubenix.buildResources {
       configuration.imports = [./test/secret-restart-controller.nix globalConfig];
     };
+
+    selfsigned-cert-deployer = kubenix.buildResources {
+      configuration.imports = [./test/selfsigned-cert-deployer.nix globalConfig];
+    };
   };
 }

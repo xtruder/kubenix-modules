@@ -29,4 +29,5 @@
   ./kubelog.nix
   ./secret-restart-controller.nix
   ./k8s-request-cert.nix
+  ./selfsigned-cert-deployer.nix
 ]
