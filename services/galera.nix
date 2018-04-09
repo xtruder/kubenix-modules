@@ -119,7 +119,7 @@ with k8s;
                 };
                 livenessProbe = {
                   exec.command = ["/healthcheck.sh" "--liveness"];
-                  initialDelaySeconds = 120;
+                  initialDelaySeconds = 300;
                   periodSeconds = 1;
                 };
                 volumeMounts = [{
