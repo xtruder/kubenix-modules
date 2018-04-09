@@ -18,6 +18,17 @@
     token = k8s.toBase64 "e2bf6c5e-88cc-2046-755d-7ba0bdafef35";
   };
 
+  kubernetes.resources.secrets.vault-sa = {
+    nix.dependencies = ["serviceAccounts/vault-sa"];
+
+    metadata.annotations."kubernetes.io/service-account.name" = "vault-sa";
+    type = "kubernetes.io/service-account-token";
+  };
+
+  kubernetes.resources.serviceAccounts.vault-sa = {
+    secrets = [{ name = "vault-sa"; }];
+  };
+
   kubernetes.modules.nginx = {
     configuration.kubernetes.modules.token1 = {
       module = "vault-login-sidecar";
@@ -41,6 +52,23 @@
         mountPath = "/token2";
         vault.address = "http://vault:8200";
         vault.role = "vault-login";
+        tokenRenewPeriod = 60;
+      };
+    };
+
+    configuration.kubernetes.modules.token3 = {
+      module = "vault-login-sidecar";
+      configuration = {
+        resourcePath = ["deployments" "nginx" "spec" "template" "spec"];
+        serviceAccountName = "vault-sa";
+        mountContainer = "nginx";
+        mountPath = "/token3";
+        vault.address = "http://vault:8200";
+        vault.role = "vault-login";
+        kubernetes.token = {
+          name = "vault-sa";
+          key = "token";
+        };
         tokenRenewPeriod = 60;
       };
     };
@@ -78,7 +106,7 @@
       resource.vault_generic_secret.auth_kubernetes_role_vault_login = {
         path = "auth/kubernetes/role/vault-login";
         data_json = builtins.toJSON {
-          bound_service_account_names = "nginx";
+          bound_service_account_names = ["nginx" "vault-sa"];
           bound_service_account_namespaces = "default";
           policies = ["default"];
           period = "1h";

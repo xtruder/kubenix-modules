@@ -37,6 +37,11 @@ with k8s;
         default = "kubernetes";
       };
 
+      kubernetes.token = mkSecretOption {
+        description = "Optional secret where to read kubernetes token from";
+        default = null;
+      }; 
+
       vault = {
         address = mkOption {
           description = "Vault address";
@@ -75,11 +80,16 @@ with k8s;
               then "/etc/certs/vault/ca.crt"
               else "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
             VAULT_ADDR.value = config.vault.address;
+            KUBERNETES_TOKEN = mkIf (config.kubernetes.token != null) (secretToEnv config.kubernetes.token);
           };
           command = ["sh" "-ec" ''
             vault write -field=token auth/kubernetes/login \
               role=${config.vault.role} \
-              jwt=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token) > /vault/token
+              jwt=${
+                if (config.kubernetes.token != null)
+                then "$KUBERNETES_TOKEN"
+                else "$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+              } > /vault/token
             echo "vault token retrived"
           ''];
           volumeMounts."/etc/certs/vault" = mkIf (config.vault.caCert != null) {
