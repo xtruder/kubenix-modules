@@ -83,7 +83,7 @@ with k8s;
       vault = {
         address = mkOption {
           description = "Vault address";
-          default = "http://vault:8200";
+          default = "https://vault:8200";
           type = types.str;
         };
 
