@@ -90,6 +90,7 @@ with k8s;
                 then "$KUBERNETES_TOKEN"
                 else "$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
               } > /vault/token
+            cp $VAULT_CACERT /vault
             echo "vault token retrived"
           ''];
           volumeMounts."/etc/certs/vault" = mkIf (config.vault.caCert != null) {
