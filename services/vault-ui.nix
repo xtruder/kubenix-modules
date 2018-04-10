@@ -22,7 +22,7 @@ with k8s;
         defaultUrl = mkOption {
           description = "Vault url";
           type = types.str;
-          default = "http://vault:8200";
+          default = "https://vault:8300";
         };
 
         defaultAuth = mkOption {
