@@ -66,7 +66,7 @@ with k8s;
         };
       };
 
-      kubernetes.resources.services.vault = {
+      kubernetes.resources.services.vault-ui = {
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
