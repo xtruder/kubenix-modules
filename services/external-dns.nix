@@ -53,6 +53,12 @@ with lib;
         default = "txt";
       };
 
+      txt.owner = mkOption {
+        description = "Name of the RR set owner";
+        type = types.str;
+        default = "my-identifier";
+      };
+
       annotationFilter = mkOption {
         description = "Annotations filter (you can bound on ingress class)";
         type = types.nullOr types.str;
@@ -79,7 +85,7 @@ with lib;
                   "--provider=${config.provider}"
                   "--google-project=${config.google.project}"
                   "--registry=${config.registry}"
-                  "--txt-owner-id=my-identifier"
+                  "--txt-owner-id=${config.txt.owner}"
                 ] ++ (optional (config.annotationFilter != null)
                   "--annotation-filter=${config.annotationFilter}");
                 env = {
