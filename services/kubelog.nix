@@ -6,18 +6,6 @@ with lib;
 {
   config.kubernetes.moduleDefinitions.kubelog.module = {name, module, config, ...}: {
     options = {
-      namespaces = mkOption {
-        description = "List of namespaces to log";
-        type = types.listOf types.str;
-        default = ["kube-system"];
-      };
-
-      containers = mkOption {
-        description = "List of containers to collect logs from (all by default)";
-        type = types.nullOr (types.listOf types.str);
-        default = null;
-      };
-
       outputConfig = mkOption {
         description = "Logstash output config";
         type = types.lines;
@@ -29,7 +17,7 @@ with lib;
         default = "";
       };
     };
-    
+
     config = {
       kubernetes.modules.logstash = {
         name = "${name}-logstash";
@@ -97,17 +85,9 @@ with lib;
 
             kubernetes {}
 
-            if [kubernetes][namespace] not in [${concatMapStringsSep ","
-              (n: ''"${n}"'')config.namespaces}] {
-                drop { }
-              }
-
-            ${optionalString (config.containers != null) ''
-              if [kubernetes][container_name] not in [${concatStringsSep ","
-                config.containers}] {
-                  drop {}
-                }
-              ''}
+            if [kubernetes][container_name] == "logstash" {
+              drop { }
+            }
 
             json {
               source => "message"
@@ -126,7 +106,7 @@ with lib;
             ${config.outputConfig}
           }
           '';
-        };        
+        };
       };
     };
   };

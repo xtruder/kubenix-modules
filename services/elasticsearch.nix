@@ -11,7 +11,7 @@ in {
       image = mkOption {
         description = "Elasticsearch image to use";
         type = types.str;
-        default = "quay.io/pires/docker-elasticsearch-kubernetes:5.5.0";
+        default = "quay.io/pires/docker-elasticsearch-kubernetes:6.2.3";
       };
 
       name = mkOption {
@@ -139,8 +139,10 @@ in {
           };
           spec = {
             replicas = cfg.replicas;
+            selector.matchLabels.app = name;
             template = {
               metadata.labels = {
+                app = name;
                 component = name;
                 role = cfg.name;
                 master = if isMaster then "true" else "false";
