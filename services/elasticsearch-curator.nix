@@ -9,7 +9,7 @@ with lib;
       image = mkOption {
         description = "Elasticsearc image";
         type = types.str;
-        default = "bobrik/curator:5.2.0";
+        default = "bobrik/curator:5.4.0";
       };
 
       hosts = mkOption {
