@@ -8,7 +8,6 @@
   kubernetes.modules.kubelog = {
     module = "kubelog";
     configuration = {
-      namespaces = ["test"];
       outputConfig = ''
         stdout { codec => rubydebug }
       '';
