@@ -11,7 +11,7 @@ in {
       image = mkOption {
         description = "Elasticsearch image to use";
         type = types.str;
-        default = "quay.io/pires/docker-elasticsearch-kubernetes:5.5.0";
+        default = "quay.io/pires/docker-elasticsearch-kubernetes:6.2.3";
       };
 
       name = mkOption {
