@@ -25,6 +25,10 @@ in {
     logs = kubenix.buildResources {
       configuration.imports = [./examples/logs/default.nix globalConfig];
     };
+
+    nginx-ingress-external-dns = kubenix.buildResources {
+      configuration.imports = [./examples/ingress/nginx-ingress-external-dns.nix globalConfig];
+    };
   };
 
   tests = {
