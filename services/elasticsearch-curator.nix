@@ -123,7 +123,7 @@ with lib;
           };
         };
         data."actions.yaml" = toYAML {
-          actions = listToAttrs (imap (i: action: 
+          actions = listToAttrs (imap (i: action:
           nameValuePair (toString i) action
           ) config.actions);
         };

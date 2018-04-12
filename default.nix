@@ -21,6 +21,10 @@ in {
     ca-deployer = kubenix.buildResources {
       configuration.imports = [./examples/deployer/ca-deployer.nix globalConfig];
     };
+
+    logs = kubenix.buildResources {
+      configuration.imports = [./examples/logs/default.nix globalConfig];
+    };
   };
 
   tests = {

@@ -139,8 +139,10 @@ in {
           };
           spec = {
             replicas = cfg.replicas;
+            selector.matchLabels.app = name;
             template = {
               metadata.labels = {
+                app = name;
                 component = name;
                 role = cfg.name;
                 master = if isMaster then "true" else "false";
