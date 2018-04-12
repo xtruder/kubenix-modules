@@ -13,10 +13,10 @@ with k8s;
     module = "nginx";
   };
 
-  kubernetes.resources.ingresses.test-gatehub = {
+  kubernetes.resources.ingresses.nginx-ingress = {
     metadata.annotations."kubernetes.io/ingress.class" = "nginx";
     spec.rules = [{
-      host = "test.gatehub.net";
+      host = "test.example.com";
       http.paths = [{
         path = "/";
         backend = {
