@@ -155,5 +155,9 @@ in {
     selfsigned-cert-deployer = kubenix.buildResources {
       configuration.imports = [./test/selfsigned-cert-deployer.nix globalConfig];
     };
+
+    nginx-ingress = kubenix.buildResources {
+      configuration.imports = [./test/nginx-ingress.nix globalConfig];
+    };
   };
 }
