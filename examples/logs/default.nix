@@ -21,7 +21,8 @@
       master = {
         roles = ["master" "data" "ingest" "client"];
         replicas = 1;
-        memory = 512;
+        memory = 1024;
+        cpu = "200m";
       };
     };
   };
@@ -34,7 +35,10 @@
       actions = [{
         action = "close";
         description = "Close logstash indices older than 30 days";
-        options.delete_aliases = true;
+        options = {
+          delete_aliases = true;
+          ignore_empty_list = true;
+        };
         filters = [{
           filtertype = "pattern";
           kind = "prefix";
@@ -49,6 +53,10 @@
         }];
       }];
     };
+  };
+
+  kubernetes.modules.kibana = {
+    module = "kibana";
   };
 
   kubernetes.resources.namespaces.test = {};
