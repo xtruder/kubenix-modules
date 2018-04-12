@@ -20,9 +20,10 @@ in {
 
     module = "nginx";
 
-    configuration.kubernetes.resources.services.nginx = {
-      metadata.annotations."cloud.google.com/load-balancer-type" = "Internal";
-    };
+    # if you want your ingress to be internal
+    #configuration.kubernetes.resources.services.nginx = {
+      #metadata.annotations."cloud.google.com/load-balancer-type" = "Internal";
+    #};
   };
 
   kubernetes.modules.external-dns = {
