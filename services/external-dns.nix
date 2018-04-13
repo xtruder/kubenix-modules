@@ -65,6 +65,12 @@ with lib;
         default = null;
         example = "kubernetes.io/ingress.class=nginx-external";
       };
+
+      extraArgs = mkOption {
+        description = "Extra arguments";
+        type = types.listOf types.str;
+        default = [];
+      };
     };
 
     config = {
@@ -87,7 +93,8 @@ with lib;
                   "--registry=${config.registry}"
                   "--txt-owner-id=${config.txt.owner}"
                 ] ++ (optional (config.annotationFilter != null)
-                  "--annotation-filter=${config.annotationFilter}");
+                  "--annotation-filter=${config.annotationFilter}")
+                  ++ config.extraArgs;
                 env = {
                   GOOGLE_APPLICATION_CREDENTIALS =
                     mkIf (config.google.credentials != null) {
