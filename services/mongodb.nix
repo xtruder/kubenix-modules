@@ -82,7 +82,7 @@ with k8s;
         metadata.labels.app = module.name;
 
         spec = {
-          serviceName = "${module.name}-headless";
+          serviceName = module.name;
           podManagementPolicy = "Parallel";
           replicas = config.replicas;
 
@@ -132,8 +132,8 @@ with k8s;
                   KUBECTL_NAMESPACE.valueFrom.fieldRef.fieldPath = "metadata.namespace";
                   KUBE_NAMESPACE.valueFrom.fieldRef.fieldPath = "metadata.namespace";
                   MONGO_SIDECAR_POD_LABELS.value = "app=${module.name}";
-                  KUBERNETES_MONGO_SERVICE_NAME.value = "${module.name}-headless";
                   MONGO_PORT.value = "27017";
+                  KUBERNETES_MONGO_SERVICE_NAME.value = module.name;
                 } // (optionalAttrs config.auth.enable {
                   MONGODB_USERNAME = secretToEnv config.auth.adminUser;
                   MONGODB_PASSWORD = secretToEnv config.auth.adminPassword;
@@ -166,19 +166,6 @@ with k8s;
         };
       };
 
-      kubernetes.resources.services.mongo-headless = {
-        metadata.name = "${module.name}-headless";
-        metadata.labels.app = module.name;
-        spec = {
-          ports = [{
-            name = "mongo";
-            port = 27017;
-          }];
-          clusterIP = "None";
-          selector.app = module.name;
-        };
-      };
-
       kubernetes.resources.services.mongo = {
         metadata.name = module.name;
         metadata.labels.app = module.name;
@@ -187,6 +174,7 @@ with k8s;
             name = "mongo";
             port = 27017;
           }];
+          clusterIP = "None";
           selector.app = module.name;
         };
       };
