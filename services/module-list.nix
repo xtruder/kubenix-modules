@@ -32,4 +32,5 @@
   ./selfsigned-cert-deployer.nix
   ./nginx-ingress.nix
   ./external-dns.nix
+  ./mongodb.nix
 ]

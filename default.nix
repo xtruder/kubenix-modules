@@ -167,5 +167,9 @@ in {
     nginx-ingress = kubenix.buildResources {
       configuration.imports = [./test/nginx-ingress.nix globalConfig];
     };
+
+    mongo = kubenix.buildResources {
+      configuration.imports = [./test/mongo.nix globalConfig];
+    };
   };
 }
