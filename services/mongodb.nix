@@ -108,21 +108,21 @@ with k8s;
                 ports = [{
                   containerPort = 27017;
                 }];
-								volumeMounts = [{
-									name = "datadir";
-									mountPath = "/data/db";
-								} {
-									name = "config";
-									mountPath = "/etc/mongod.conf";
+                volumeMounts = [{
+                  name = "datadir";
+                  mountPath = "/data/db";
+                } {
+                  name = "config";
+                  mountPath = "/etc/mongod.conf";
                   subPath = "mongod.conf";
-								} {
-									name = "workdir";
-									mountPath = "/work-dir";
-								}] ++ (optional config.auth.enable {
-									name = "key";
-									mountPath = "/keydir";
-									readOnly = true;
-								});
+                } {
+                  name = "workdir";
+                  mountPath = "/work-dir";
+                }] ++ (optional config.auth.enable {
+                  name = "key";
+                  mountPath = "/keydir";
+                  readOnly = true;
+                });
               };
 
               containers.mongo-sidecar = {
@@ -155,14 +155,14 @@ with k8s;
             };
           };
 
-      		volumeClaimTemplates = [{
+          volumeClaimTemplates = [{
             metadata.name = "datadir";
             spec = {
               accessModes = ["ReadWriteOnce"];
               storageClassName = mkIf (config.storage.class != null) config.storage.class;
               resources.requests.storage = config.storage.size;
             };
-      		}];
+          }];
         };
       };
 
@@ -207,37 +207,37 @@ with k8s;
         apiVersion = "rbac.authorization.k8s.io/v1";
         metadata.name = module.name;
         metadata.labels.app = module.name;
-				rules = [{
-					apiGroups = [""];
-					resources = [
-						"pods"
-					];
-					verbs = ["get" "list" "watch"];
-				}];
-      };
+        rules = [{
+          apiGroups = [""];
+          resources = [
+            "pods"
+            ];
+            verbs = ["get" "list" "watch"];
+          }];
+        };
 
-			kubernetes.resources.clusterRoleBindings.mongo = {
-        apiVersion = "rbac.authorization.k8s.io/v1";
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
-				roleRef = {
-					apiGroup = "rbac.authorization.k8s.io";
-					kind = "ClusterRole";
-					name = "mongo";
-				};
-				subjects = [{
-					kind = "ServiceAccount";
-					name = module.name;
-					namespace = module.namespace;
-				}];
-			};
+        kubernetes.resources.clusterRoleBindings.mongo = {
+          apiVersion = "rbac.authorization.k8s.io/v1";
+          metadata.name = module.name;
+          metadata.labels.app = module.name;
+          roleRef = {
+            apiGroup = "rbac.authorization.k8s.io";
+            kind = "ClusterRole";
+            name = "mongo";
+          };
+          subjects = [{
+            kind = "ServiceAccount";
+            name = module.name;
+            namespace = module.namespace;
+          }];
+        };
 
-      kubernetes.resources.podDisruptionBudgets.mongo = {
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
-        spec.minAvailable = "60%";
-        spec.selector.matchLabels.app = module.name;
+        kubernetes.resources.podDisruptionBudgets.mongo = {
+          metadata.name = module.name;
+          metadata.labels.app = module.name;
+          spec.minAvailable = "60%";
+          spec.selector.matchLabels.app = module.name;
+        };
       };
     };
-  };
-}
+  }
