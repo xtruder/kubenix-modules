@@ -33,4 +33,5 @@
   ./nginx-ingress.nix
   ./external-dns.nix
   ./mongodb.nix
+  ./pritunl.nix
 ]

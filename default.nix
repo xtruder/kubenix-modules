@@ -171,5 +171,9 @@ in {
     mongo = kubenix.buildResources {
       configuration.imports = [./test/mongo.nix globalConfig];
     };
+
+    pritunl = kubenix.buildResources {
+      configuration.imports = [./test/pritunl.nix globalConfig];
+    };
   };
 }
