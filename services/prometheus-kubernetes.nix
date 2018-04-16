@@ -1,6 +1,8 @@
-{ config, lib, k8s, ... }:
-
-{
+{ config, lib, k8s, pkgs, ... }:
+let
+  loadYAML = path: (builtins.fromJSON (builtins.readFile (pkgs.runCommand "yaml-to-json" {
+  } "${pkgs.remarshal}/bin/remarshal -i ${path} -if yaml -of json > $out")));
+in {
   config.kubernetes.moduleDefinitions.prometheus-kubernetes.module = {name, config, module, ...}: {
     config = {
       kubernetes.modules.prometheus = {
@@ -8,207 +10,24 @@
         module = "prometheus";
         namespace = module.namespace;
         configuration = {
+          replicas = 1;
           rules = {
-            "kubernetes.alerts" = ./prometheus/kubernetes.rules;
+            "prometheus.rules" = ./prometheus/prometheus.rules;
           };
           alerts = {
-            "alertmanager.rules" = ./prometheus/alertmanager.rules;
-            "general.rules" = ./prometheus/alertmanager.rules;
-            "kube-apiserver.rules" = ./prometheus/kube-apiserver.rules;
-            "kubelet.rules" = ./prometheus/kubelet.rules;
-            "low-disk-space.rules" = ./prometheus/low-disk-space.rules;
+            "kube-controller-manager.alerts" = ./prometheus/kube-controller-manager.rules;
+            "general.alerts" = ./prometheus/general.rules;
+            "etcd3.alerts" = ./prometheus/etcd3.rules;
+            "job.alerts" = ./prometheus/job.rules;
+            "node.alerts" = ./prometheus/node.rules;
+            "alertmanager.alerts" = ./prometheus/alertmanager.rules;
+            "kube-scheduler.alerts" = ./prometheus/kube-scheduler.rules;
+            "kubelet.alerts" = ./prometheus/kubelet.rules;
+            "kube-state-metrics.alerts" = ./prometheus/kube-state-metrics.rules;
+            "kube-apiserver.alerts" = ./prometheus/kube-apiserver.rules;
+            "kubernetes.alerts" = ./prometheus/kubernetes.rules;
           };
-          extraScrapeConfigs = [
-          # A scrape configuration for running Prometheus on a Kubernetes cluster.
-          # This uses separate scrape configs for cluster components (i.e. API server, node)
-          # and services to allow each to use different authentication configs.
-          #
-          # Kubernetes labels will be added as Prometheus labels on metrics via the
-          # `labelmap` relabeling action.
-
-          # Scrape config for API servers.
-          #
-          # Kubernetes exposes API servers as endpoints to the default/kubernetes
-          # service so this uses `endpoints` role and uses relabelling to only keep
-          # the endpoints associated with the default/kubernetes service using the
-          # default named port `https`. This works for single API server deployments as
-          # well as HA API server deployments. 
-          {
-            job_name = "kubernetes-apiservers";
-            kubernetes_sd_configs = [{role = "endpoints";}];
-            scheme = "https";
-            tls_config = {
-              ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
-              insecure_skip_verify = true;
-            };
-            bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token";
-            relabel_configs = [{
-              source_labels = [
-                "__meta_kubernetes_namespace"
-                "__meta_kubernetes_service_name"
-                "__meta_kubernetes_endpoint_port_name"
-                ];
-                action = "keep";
-                regex = "default;kubernetes;https";
-              }];
-            }  
-
-            {
-              job_name = "kubernetes-nodes";
-              scheme = "https";
-              tls_config = {
-                ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
-                insecure_skip_verify = true;
-              };
-              bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token";
-              kubernetes_sd_configs = [{ role = "node"; }];
-              relabel_configs = [{
-                action = "labelmap";
-                regex = "__meta_kubernetes_node_label_(.+)";
-              } {
-                target_label = "__address__";
-                replacement = "kubernetes.default.svc:443";
-              } {
-                source_labels = ["__meta_kubernetes_node_name"];
-                regex = "(.+)";
-                target_label = "__metrics_path__";
-                replacement = "/api/v1/nodes/\${1}/proxy/metrics";
-              }];
-            }
-
-            # Scrape config for service endpoints.
-            #
-            # The relabeling allows the actual service scrape endpoint to be configured
-            # via the following annotations:
-            #
-            # * `prometheus.io/scrape`: Only scrape services that have a value of `true`
-            # * `prometheus.io/scheme`: If the metrics endpoint is secured then you will need
-            # to set this to `https` & most likely set the `tls_config` of the scrape config.
-            # * `prometheus.io/path`: If the metrics path is not `/metrics` override this.
-            # * `prometheus.io/port`: If the metrics are exposed on a different port to the
-            # service then set this appropriately.
-            {
-              job_name = "kubernetes-service-endpoints";
-              kubernetes_sd_configs = [{role = "endpoints";}];
-              relabel_configs = [{
-                source_labels = ["__meta_kubernetes_service_annotation_prometheus_io_scrape"];
-                action = "keep";
-                regex = true;
-              } {
-                source_labels = ["__meta_kubernetes_service_annotation_prometheus_io_scheme"];
-                action = "replace";
-                target_label = "__scheme__";
-                regex = "(https?)";
-              } {
-                source_labels = ["__meta_kubernetes_service_annotation_prometheus_io_path"];
-                action = "replace";
-                target_label = "__metrics_path__";
-                regex = "(.+)";
-              } {
-                source_labels = ["__address__" "__meta_kubernetes_service_annotation_prometheus_io_port"];
-                action = "replace";
-                target_label = "__address__";
-                regex = "([^:]+)(?::\d+)?;(\d+)";
-                replacement = "$1:$2";
-              } {
-                action = "labelmap";
-                regex = "__meta_kubernetes_service_label_(.+)";
-              } {
-                source_labels = ["__meta_kubernetes_namespace"];
-                action = "replace";
-                target_label = "kubernetes_namespace";
-              } {
-                source_labels = ["__meta_kubernetes_service_name"];
-                action = "replace";
-                target_label = "kubernetes_name";
-              }];
-            }
-
-            # Example scrape config for probing services via the Blackbox Exporter.
-            #
-            # The relabeling allows the actual service scrape endpoint to be configured
-            # via the following annotations:
-            #
-            # * `prometheus.io/probe`: Only probe services that have a value of `true`
-            {
-              job_name = "kubernetes-services";
-              metrics_path = "/probe";
-              params.module = ["http_2xx"];
-              kubernetes_sd_configs = [{role = "service";}];
-              relabel_configs = [{
-                source_labels = ["__meta_kubernetes_service_annotation_prometheus_io_probe"];
-                action = "keep";
-                regex = true;
-              } {
-                source_labels = ["__address__"];
-                target_label = "__param_target";
-              } {
-                target_label = "__address__";
-                replacement = "blackbox";
-              } {
-                source_labels = ["__param_target"];
-                target_label = "instance";
-              } {
-                action = "labelmap";
-                regex = "__meta_kubernetes_service_label_(.+)";
-              } {
-                source_labels = ["__meta_kubernetes_namespace"];
-                target_label = "kubernetes_namespace";
-              } {
-                source_labels = ["__meta_kubernetes_service_name"];
-                target_label = "kubernetes_name";
-              }];
-            }
-
-            # Example scrape config for pods
-            #
-            # The relabeling allows the actual pod scrape endpoint to be configured via the
-            # following annotations:
-            #
-            # * `prometheus.io/scrape`: Only scrape pods that have a value of `true`
-            # * `prometheus.io/path`: If the metrics path is not `/metrics` override this. This
-            #    will be the same for every container in the pod that is scraped.
-            # * this will scrape every container in a pod with `prometheus.io/scrape` set to true and the
-            #		port is name `metrics` in the container
-            # * note `prometheus.io/port` is no longer honored. You must name the port(s) to scrape `metrics`
-            #   Also, in some of the issues I read, there was mention of a container role, but I couldn't get 
-            #   that to work - or find any more info on it.
-            {
-              job_name = "kubernetes-pods";
-              kubernetes_sd_configs = [{role = "pod";}];
-              relabel_configs = [{
-                source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"];
-                action = "keep";
-                regex = true;
-              } {
-                source_labels = ["__meta_kubernetes_pod_container_port_name"];
-                action = "keep";
-                regex = "metrics";
-              } {
-                source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_path"];
-                action = "replace";
-                target_label = "__metrics_path__";
-                regex = "(.+)";
-              } {
-                source_labels = ["__address__" "__meta_kubernetes_pod_container_port_number"];
-                action = "replace";
-                regex = "([^:]+)(?::\d+)?;(\d+)";
-                replacement = "$1:$2";
-                target_label = "__address__";
-              } {
-                action = "labelmap";
-                regex = "__meta_kubernetes_pod_label_(.+)";
-              } {
-                source_labels = ["__meta_kubernetes_namespace"];
-                action = "replace";
-                target_label = "kubernetes_namespace";
-              } {
-                source_labels = ["__meta_kubernetes_pod_name"];
-                action = "replace";
-                target_label = "kubernetes_pod_name";
-              }];
-            }
-          ];
+          extraScrapeConfigs = loadYAML ./prometheus/scrapeconfigs.yaml;
         };
       };
 
@@ -217,6 +36,7 @@
         module = "prometheus-alertmanager";
         namespace = module.namespace;
         configuration = {
+          replicas = 1;
           route.receiver = "default";
           receivers.default = {};
         };
@@ -232,12 +52,16 @@
         name = "${name}-grafana";
         module = "grafana";
         namespace = module.namespace;
-        configuration.dashboards = {
-          "all-nodes-dashboard.json" = ./prometheus/all-nodes-dashboard.json;
+        configuration.resources = {
           "deployment-dashboard.json" = ./prometheus/deployment-dashboard.json;
-          "kubernetes-prods-dashboard.json" = ./prometheus/kubernetes-pods-dashboard.json;
-          "node-dashboard.json" = ./prometheus/node-dashboard.json;
-          "resource-requests-dashboard.json" = ./prometheus/resource-requests-dashboard.json;
+          "kubernetes-capacity-planing-dashboard.json" = ./prometheus/kubernetes-capacity-planing-dashboard.json;
+          "kubernetes-cluster-health-dashboard.json" = ./prometheus/kubernetes-cluster-health-dashboard.json;
+          "kubernetes-cluster-status-dashboard.json" = ./prometheus/kubernetes-cluster-status-dashboard.json;
+          "kubernetes-cluster-usage-dashboard.json" = ./prometheus/kubernetes-cluster-usage-dashboard.json;
+          "kubernetes-control-plane-status-dashboard.json" = ./prometheus/kubernetes-control-plane-status-dashboard.json;
+          "kubernetes-resource-requests-dashboard.json" = ./prometheus/kubernetes-resource-requests-dashboard.json;
+          "nodes-dashboard.json" = ./prometheus/nodes-dashboard.json;
+          "pods-dashboard.json" = ./prometheus/pods-dashboard.json;
           "prometheus-datasource.json" = {
             access = "proxy";
             basicAuth = false;
@@ -251,6 +75,23 @@
       kubernetes.modules.prometheus-node-exporter = {
         name = "${name}-prometheus-node-exporter";
         module = "prometheus-node-exporter";
+        namespace = module.namespace;
+        configuration = {
+          extraPaths = {
+            rootfs.hostPath = "/";
+          };
+        };
+      };
+
+      kubernetes.modules.prometheus-operator = {
+        name = "${name}-operator";
+        module = "prometheus-operator";
+        namespace = module.namespace;
+      };
+
+      kubernetes.modules.kube-state-metrics = {
+        name = "${name}-kube-state-metrics";
+        module = "kube-state-metrics";
         namespace = module.namespace;
       };
     };

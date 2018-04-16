@@ -29,6 +29,10 @@ in {
     nginx-ingress-external-dns = kubenix.buildResources {
       configuration.imports = [./examples/ingress/nginx-ingress-external-dns.nix globalConfig];
     };
+
+    prometheus = kubenix.buildResources {
+      configuration.imports = [./examples/prometheus/default.nix globalConfig];
+    };
   };
 
   tests = {

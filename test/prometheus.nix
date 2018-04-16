@@ -6,7 +6,8 @@
   kubernetes.modules.prometheus = {
     module = "prometheus";
     configuration = {
-      enableKubernetesScrapers = true;
+      replicas = 1;
+      alertmanager.enable = true;
     };
   };
 

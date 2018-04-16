@@ -6,7 +6,11 @@ with lib;
 {
   config.kubernetes.moduleDefinitions.prometheus.module = {name, config, module, ...}: let
     prometheusConfig = {
-      global.external_labels = config.externalLabels;
+      global = {
+        external_labels = config.externalLabels;
+        scrape_interval = "15s";
+        evaluation_interval = "30s";
+      };
 
       rule_files = ["/etc/config/*.rules" "/etc/config/*.alerts"];
 
@@ -20,13 +24,21 @@ with lib;
           }];
         }
       ] ++ config.extraScrapeConfigs;
+
+      alerting = optionalAttrs (config.alertmanager.enable) {
+        alertmanagers = [{
+            static_configs = [{
+              targets = [config.alertmanager.host];
+            }];
+        }];
       };
+    };
   in {
     options = {
       image = mkOption {
         description = "Docker image to use for prometheus";
         type = types.str;
-        default = "prom/prometheus:v1.5.2";
+        default = "prom/prometheus:v2.2.1";
       };
 
       replicas = mkOption {
@@ -42,9 +54,9 @@ with lib;
           type = types.bool;
         };
 
-        url = mkOption {
-          description = "Alertmanager url";
-          default = "http://prometheus-alertmanager:9093";
+        host = mkOption {
+          description = "Alertmanager host";
+          default = "prometheus-alertmanager:9093";
           type = types.str;
         };
       };
@@ -115,7 +127,7 @@ with lib;
               volumes.config.configMap.name = name;
 
               containers.server-reload = {
-                image = "jimmidyson/configmap-reload:v0.1";
+                image = "jimmidyson/configmap-reload:v0.2.2";
                 args = [
                   "--volume-dir=/etc/config"
                   "--webhook-url=http://localhost:9090/-/reload"
@@ -131,12 +143,10 @@ with lib;
                 image = config.image;
                 args = [
                   "--config.file=/etc/config/prometheus.json"
-                  "--storage.local.path=/data"
+                  "--storage.tsdb.path=/data"
                   "--web.console.libraries=/etc/prometheus/console_libraries"
                   "--web.console.templates=/etc/prometheus/consoles"
-                ] ++ (optionals (config.alertmanager.enable) [
-                  "--alertmanager.url=${config.alertmanager.url}"
-                ]) ++ config.extraArgs;
+                ] ++ config.extraArgs;
                 ports = [{
                   name = "prometheus";
                   containerPort = 9090;
@@ -195,11 +205,11 @@ with lib;
         metadata.labels.app = name;
         data = {
           "prometheus.json" = builtins.toJSON prometheusConfig;
-        } // (mapAttrs (name: value: 
-          if isString value then value
+        } // (mapAttrs (name: value:
+          if isAttrs value then builtins.toJSON value
           else builtins.readFile value
-        ) config.alerts) // (mapAttrs (name: value: 
-          if isString value then value
+        ) config.alerts) // (mapAttrs (name: value:
+          if isAttrs value then builtins.toJSON value
           else builtins.readFile value
         ) config.rules);
       };
@@ -323,12 +333,351 @@ with lib;
     };
   };
 
+  config.kubernetes.moduleDefinitions.prometheus-operator.module = {name, config, module, ...}: {
+    options = {
+      image = mkOption {
+        description = "Image to use for prometheus operator";
+        type = types.str;
+        default = "quay.io/coreos/prometheus-operator:v0.17.0";
+      };
+    };
+
+    config = {
+      kubernetes.resources.deployments.prometheus-operator = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        spec = {
+          replicas = 1;
+          selector.matchLabels.app = name;
+          template = {
+            metadata.name = name;
+            metadata.labels.app = name;
+            spec = {
+              serviceAccountName = name;
+              containers.prometheus-operator = {
+                image = config.image;
+                args = [
+                  "--kubelet-service=kube-system/kubelet"
+                  "--config-reloader-image=quay.io/coreos/configmap-reload:v0.0.1"
+                ];
+                ports = [{
+                  name = "http";
+                  containerPort = 8080;
+                }];
+                resources = {
+                  requests = {
+                    memory = "50Mi";
+                    cpu = "100m";
+                  };
+                  limits = {
+                    memory = "100Mi";
+                    cpu = "200m";
+                  };
+                };
+              };
+              /* nodeSelector.node_label_key = "node_label_value"; */
+            };
+          };
+        };
+      };
+
+      kubernetes.resources.services.prometheus-operator = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        spec = {
+          ports = [{
+            name = "http";
+            port = 8080;
+            protocol = "TCP";
+          }];
+          selector.app = name;
+        };
+      };
+
+      kubernetes.resources.serviceAccounts.prometheus-operator.metadata.name = name;
+
+      kubernetes.resources.clusterRoleBindings.prometheus-operator = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = name;
+        metadata.labels.app = name;
+        roleRef = {
+          apiGroup = "rbac.authorization.k8s.io";
+          kind = "ClusterRole";
+          name = name;
+        };
+        subjects = [{
+          kind = "ServiceAccount";
+          name = name;
+          namespace = module.namespace;
+        }];
+      };
+
+      kubernetes.resources.clusterRoles.prometheus-operator = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        rules = [{
+          apiGroups = ["extensions"];
+          resources = [
+            "thirdpartyresources"
+          ];
+          verbs = ["*"];
+        } {
+          apiGroups = ["apiextensions.k8s.io"];
+          resources = [
+            "customresourcedefinitions"
+          ];
+          verbs = ["*"];
+        } {
+          apiGroups = ["monitoring.coreos.com"];
+          resources = [
+            "alertmanagers"
+            "prometheuses"
+            "servicemonitors"
+          ];
+          verbs = ["*"];
+        } {
+          apiGroups = ["apps"];
+          resources = [
+            "statefulsets"
+          ];
+          verbs = ["*"];
+        } {
+          apiGroups = [""];
+          resources = [
+            "configmaps"
+            "secrets"
+          ];
+          verbs = ["*"];
+        } {
+          apiGroups = [""];
+          resources = [
+            "pods"
+          ];
+          verbs = [
+            "list"
+            "delete"
+          ];
+        } {
+          apiGroups = [""];
+          resources = [
+            "services"
+            "endpoints"
+          ];
+          verbs = [
+            "get"
+            "create"
+            "update"
+          ];
+        } {
+          apiGroups = [""];
+          resources = [
+            "nodes"
+          ];
+          verbs = [
+            "list"
+            "watch"
+          ];
+        } {
+          apiGroups = [""];
+          resources = [
+            "namespaces"
+          ];
+          verbs = [
+            "list"
+          ];
+        }];
+      };
+    };
+  };
+
+  config.kubernetes.moduleDefinitions.kube-state-metrics.module = {name, config, module, ...}: {
+    options = {
+      image = mkOption {
+        description = "Image to use for kube-state-metrics";
+        type = types.str;
+        default = "k8s.gcr.io/kube-state-metrics:v1.2.0";
+      };
+    };
+
+    config = {
+      kubernetes.resources.deployments.kube-state-metrics = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        spec = {
+          replicas = 1;
+          selector.matchLabels.app = name;
+          template = {
+            metadata.name = name;
+            metadata.labels.app = name;
+            spec = {
+              serviceAccountName = name;
+              containers.kube-state-metrics = {
+                image = config.image;
+                ports = [{
+                  name = "http-metrics";
+                  containerPort = 8080;
+                }];
+                readinessProbe = {
+                  httpGet = {
+                    path = "/healthz";
+                    port = 8080;
+                  };
+                  initialDelaySeconds = 5;
+                  timeoutSeconds = 5;
+                };
+                resources = {
+                  requests = {
+                    memory = "100Mi";
+                    cpu = "100m";
+                  };
+                  limits = {
+                    memory = "200Mi";
+                    cpu = "200m";
+                  };
+                };
+              };
+              containers.addon-resizer = {
+                image = "k8s.gcr.io/addon-resizer:1.7";
+                resources = {
+                  requests = {
+                    memory = "30Mi";
+                    cpu = "100m";
+                  };
+                  limits = {
+                    memory = "30Mi";
+                    cpu = "100m";
+                  };
+                };
+                env = {
+                  MY_POD_NAMESPACE.valueFrom.fieldRef.fieldPath = "metadata.namespace";
+                  MY_POD_NAME.valueFrom.fieldRef.fieldPath = "metadata.name";
+                };
+                command = [
+                  "/pod_nanny"
+                  "--container=kube-state-metrics"
+                  /* "--cpu=100m"
+                  "--extra-cpu=1m"
+                  "--memory=100Mi"
+                  "--extra-memory=2Mi"
+                  "--threshold=5" */
+                  "--deployment=${name}"
+                ];
+              };
+              /* nodeSelector.node_label_key = "node_label_value"; */
+            };
+          };
+        };
+      };
+
+      kubernetes.resources.services.kube-state-metrics = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        metadata.annotations."prometheus.io/scrape" = "true";
+        spec = {
+          ports = [{
+            name = "http-metrics";
+            port = 8080;
+            protocol = "TCP";
+          }];
+          selector.app = name;
+        };
+      };
+
+      kubernetes.resources.serviceAccounts.kube-state-metrics.metadata.name = name;
+
+      kubernetes.resources.clusterRoles.kube-state-metrics = {
+        metadata.name = "${name}-kube-state-metrics";
+        metadata.labels.app = "${name}-kube-state-metrics";
+        rules = [{
+          apiGroups = [""];
+          resources = [
+            "nodes"
+            "pods"
+            "services"
+            "resourcequotas"
+            "replicationcontrollers"
+            "limitranges"
+            "persistentvolumeclaims"
+            "persistentvolumes"
+            "namespaces"
+            "endpoints"
+          ];
+          verbs = ["list" "watch"];
+        } {
+          apiGroups = ["extensions"];
+          resources = [
+            "daemonsets"
+            "deployments"
+            "replicasets"
+          ];
+          verbs = ["list" "watch"];
+        } {
+          apiGroups = [ "apps" ];
+          resources = [ "statefulsets" ];
+          verbs = [ "list" "watch" ];
+        } {
+          apiGroups = [ "batch" ];
+          resources = [ "cronjobs" "jobs" ];
+          verbs = [ "list" "watch" ];
+        } {
+          apiGroups = [ "autoscaling" ];
+          resources = [ "horizontalpodautoscalers" ];
+          verbs = [ "list" "watch" ];
+        }];
+      };
+
+      kubernetes.resources.clusterRoleBindings.kube-state-metrics = {
+        metadata.name = "${name}-kube-state-metrics";
+        metadata.labels.app = "${name}-kube-state-metrics";
+        roleRef = {
+          apiGroup = "rbac.authorization.k8s.io";
+          kind = "ClusterRole";
+          name = "kube-state-metrics";
+        };
+        subjects = [{
+          kind = "ServiceAccount";
+          name = "${name}-kube-state-metrics";
+          namespace = module.namespace;
+        }];
+      };
+
+      kubernetes.resources.roles.kube-state-metrics-resizer = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        rules = [{
+          apiGroups = [""];
+          resources = ["pods"];
+          resourceNames = ["vault"];
+          verbs = ["get"];
+        } {
+          apiGroups = ["extensions"];
+          resources = ["deployments"];
+          resourceNames = ["kube-state-metrics"];
+          verbs = ["get" "update"];
+        }];
+      };
+
+      kubernetes.resources.roleBindings.kube-state-metrics = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = "${name}-kube-state-metrics";
+        roleRef = {
+          apiGroup = "rbac.authorization.k8s.io";
+          kind = "Role";
+          name = "${name}-kube-state-metrics-resizer";
+        };
+        subjects = [{
+          kind = "ServiceAccount";
+          name = "${name}-kube-state-metrics";
+        }];
+      };
+    };
+  };
+
   config.kubernetes.moduleDefinitions.prometheus-node-exporter.module = {name, config, ...}: {
     options = {
       image = mkOption {
         description = "Prometheus node export image to use";
         type = types.str;
-        default = "prom/node-exporter:v0.13.0";
+        default = "prom/node-exporter:v0.15.2";
       };
 
       ignoredMountPoints = mkOption {
@@ -384,8 +733,8 @@ with lib;
               containers.node-exporter = {
                 image = config.image;
                 args = [
-                  "--collector.procfs=/host/proc"
-                  "--collector.sysfs=/host/sys"
+                  "--path.procfs=/host/proc"
+                  "--path.sysfs=/host/sys"
                   "--collector.filesystem.ignored-mount-points=${config.ignoredMountPoints}"
                   "--collector.filesystem.ignored-fs-types=${config.ignoredFsTypes}"
                 ] ++ config.extraArgs;
@@ -550,7 +899,7 @@ with lib;
       image = mkOption {
         description = "Prometheus alertmanager image to use";
         type = types.str;
-        default = "prom/alertmanager:v0.8.0";
+        default = "prom/alertmanager:v0.15.0-rc.1";
       };
 
       replicas = mkOption {
@@ -691,7 +1040,7 @@ with lib;
               volumes.config.configMap.name = name;
 
               containers.server-reload = {
-                image = "jimmidyson/configmap-reload:v0.1";
+                image = "jimmidyson/configmap-reload:v0.2.2";
                 args = [
                   "--volume-dir=/etc/config"
                   "--webhook-url=http://localhost:9093/-/reload"
