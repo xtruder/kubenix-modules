@@ -4,7 +4,7 @@ with k8s;
 with lib;
 
 {
-  config.kubernetes.moduleDefinitions.etcd.module = {name, config, ...}: {
+  config.kubernetes.moduleDefinitions.etcd.module = {module, config, ...}: {
     options = {
       image = mkOption {
         description = "Name of the etcd image to use";
@@ -41,8 +41,8 @@ with lib;
 
     config = {
       kubernetes.resources.services.etcd-headless = {
-        metadata.name = "${name}-headless";
-        metadata.labels.app = name;
+        metadata.name = "${module.name}-headless";
+        metadata.labels.app = module.name;
         spec = {
           ports = [{
             name = "client";
@@ -52,14 +52,14 @@ with lib;
             port = 2380;
           }];
           clusterIP = "None";
-          selector.app = name;
+          selector.app = module.name;
           publishNotReadyAddresses = true;
         };
       };
 
       kubernetes.resources.services.etcd = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
           ports = [{
             name = "client";
@@ -68,20 +68,20 @@ with lib;
             name = "peer";
             port = 2380;
           }];
-          selector.app = name;
+          selector.app = module.name;
         };
       };
 
       kubernetes.resources.statefulSets.etcd = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
-          serviceName = "${name}-headless";
+          serviceName = "${module.name}-headless";
           replicas = config.replicas;
           podManagementPolicy = "Parallel";
           template = {
-            metadata.name = name;
-            metadata.labels.app = name;
+            metadata.name = module.name;
+            metadata.labels.app = module.name;
             metadata.annotations = {
               "prometheus.io/scrape" = "true";
               "prometheus.io/port" = "2379";
@@ -99,8 +99,8 @@ with lib;
                 }];
                 env = {
                   CLUSTER_SIZE.value = toString config.replicas;
-                  SET_NAME.value = "${name}-headless";
-                  APP_NAME.value = name;
+                  SET_NAME.value = "${module.name}-headless";
+                  APP_NAME.value = module.name;
                 };
                 volumeMounts = [{
                   name = "data";
