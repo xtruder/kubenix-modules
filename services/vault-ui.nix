@@ -49,6 +49,7 @@ with k8s;
                 env = {
                   VAULT_URL_DEFAULT.value = config.vault.defaultUrl;
                   VAULT_AUTH_DEFAULT.value = config.vault.defaultAuth;
+                  CUSTOM_CA_CERT.value = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
                 };
                 resources = {
                   requests.memory = "50Mi";
