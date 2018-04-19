@@ -664,10 +664,18 @@ with lib;
         default = true;
       };
 
-      nodes.replicas = mkOption {
-        description = "Number of redis replicas";
-        type = types.int;
-        default = 3;
+      nodes = {
+        replicas = mkOption {
+          description = "Number of redis replicas";
+          type = types.int;
+          default = 3;
+        };
+
+        memory = mkOption {
+          description = "Requested redis memory size in mega bytes";
+          default = 256;
+          type = types.int;
+        };
       };
 
       proxy = {
@@ -702,7 +710,7 @@ with lib;
         size = mkOption {
           description = "Size of storage for redis per replica";
           type = types.str;
-          default = "500Mi";
+          default = "${toString (config.nodes.memory + 50)}Mi";
         };
 
         class = mkOption {
@@ -812,7 +820,7 @@ with lib;
 
                 resources.requests = {
                   cpu = "100m";
-                  memory = "256Mi";
+                  memory = "${toString (config.nodes.memory + 50)}";
                 };
 
                 readinessProbe = {
