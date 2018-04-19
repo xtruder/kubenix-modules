@@ -18,7 +18,7 @@ with lib;
       image = mkOption {
         description = "Name of the kibana image to use";
         type = types.str;
-        default = "kibana:5.2.2";
+        default = "docker.elastic.co/kibana/kibana-oss:6.2.3";
       };
 
       replicas = mkOption {
@@ -65,19 +65,33 @@ with lib;
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
+          selector.matchLabels.app = name;
           replicas = config.replicas;
           template = {
             metadata.labels.app = name;
             spec = {
               containers.kibana = {
                 image = config.image;
-                command = ["/usr/share/kibana/bin/kibana" "-e" "${url}"];
+                command = ["/usr/share/kibana/bin/kibana"];
                 ports = [{ containerPort = 5601; }];
-
                 resources.requests.memory = "512Mi";
+                volumeMounts = [{
+                  name = "config";
+                  mountPath = "/usr/share/kibana/config";
+                }];
               };
+              volumes.config.configMap.name = name;
             };
           };
+        };
+      };
+
+      kubernetes.resources.configMaps.kibana = {
+        metadata.name = name;
+        data."kibana.yml" = toYAML {
+          "server.name" = name;
+          "server.host" = "0";
+          "elasticsearch.url" = url;
         };
       };
 
