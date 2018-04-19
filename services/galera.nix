@@ -92,7 +92,6 @@ with k8s;
         metadata.labels.app = name;
         spec = {
           serviceName = name;
-          podManagementPolicy = "Parallel";
           replicas = config.replicas;
           template = {
             metadata.labels.app = name;

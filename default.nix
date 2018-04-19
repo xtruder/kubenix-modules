@@ -32,6 +32,10 @@ in {
   };
 
   tests = {
+    bitcoind = kubenix.buildResources {
+      configuration.imports = [./test/bitcoind.nix globalConfig];
+    };
+
     rabbitmq = kubenix.buildResources {
       configuration.imports = [./test/rabbitmq.nix globalConfig];
     };
