@@ -13,10 +13,10 @@ with lib;
 # Network-related settings:
 
 # Run on the test network instead of the real bitcoin network.
-testnet=${if config.testnet then "1" else "0"}
+testnet=${ toString config.testnet }
 
 # Run a regression test network
-regtest=${if config.regtest then "1" else "0"}
+regtest=${ toString config.regtest }
 
 # Connect via a SOCKS5 proxy
 #proxy=127.0.0.1:9050
@@ -238,7 +238,7 @@ rpcport=${toString config.rpcPort}
         data."bitcoin.conf" = bitcoindConfig;
       };
 
-      kubernetes.resources.services.rippled = {
+      kubernetes.resources.services.bitcoind = {
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
