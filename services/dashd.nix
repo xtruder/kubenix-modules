@@ -51,6 +51,8 @@ with lib;
           template = {
             metadata.labels.app = name;
             spec = {
+              securityContext.fsGroup = 1000;
+
               containers.dasd = {
                 image = config.image;
                 env.TESTNET.value = toString config.testnet;
