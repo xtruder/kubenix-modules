@@ -1,5 +1,6 @@
 [
   ./bitcoind.nix
+  ./dashd.nix
   ./rabbitmq.nix
   ./elasticsearch.nix
   ./elasticsearch-curator.nix
