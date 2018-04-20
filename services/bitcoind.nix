@@ -130,6 +130,9 @@ rpcport=${toString config.rpcPort}
 
 # Minimize to the system tray
 #minimizetotray=1
+
+# Log to console
+printtoconsole=1
   '';
 
   in {
