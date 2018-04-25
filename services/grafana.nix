@@ -8,7 +8,7 @@ with lib;
     options = {
       image = mkOption {
         description = "Version of grafana to use";
-        default = "grafana/grafana:4.2.0";
+        default = "grafana/grafana:5.0.4";
         type = types.str;
       };
 
@@ -38,7 +38,7 @@ with lib;
         path = mkOption {
           description = "Database path";
           type = types.nullOr types.str;
-          default = null; 
+          default = null;
         };
 
         host = mkOption {
@@ -67,10 +67,10 @@ with lib;
       enableWatcher = mkOption {
         description = "Whether to enable grafana watcher";
         type = types.bool;
-        default = (length (attrNames config.dashboards)) > 0;
+        default = (length (attrNames config.resources)) > 0;
       };
 
-      dashboards = mkOption {
+      resources = mkOption {
         description = "Attribute set of grafana resources to deploy";
         default = {};
       };
@@ -194,9 +194,13 @@ with lib;
       kubernetes.resources.deployments.grafana = {
         spec.template.spec = {
           containers.watcher = {
-            image = "quay.io/coreos/grafana-watcher:v0.0.4";
+            /* It subscribes to filesystem changes in a given directory,
+            reads files matching *-datasource.json and *-dashboard.json
+            and imports the datasources and dashboards to a given Grafana
+            instance via Grafana's REST API */
+            image = "quay.io/coreos/grafana-watcher:v0.0.8";
             args = [
-              "--watch-dir=/var/grafana-dashboards"
+              "--watch-dir=/var/grafana-resources"
               "--grafana-url=http://localhost:3000"
             ];
             env = {
@@ -214,21 +218,21 @@ with lib;
               };
             };
             volumeMounts = [{
-              name = "dashboards";
-              mountPath = "/var/grafana-dashboards";
+              name = "resources";
+              mountPath = "/var/grafana-resources";
             }];
           };
-          volumes.dashboards.configMap.name = name;
+          volumes.resources.configMap.name = name;
         };
       };
 
-      kubernetes.resources.configMaps.grafana-dashboards = {
+      kubernetes.resources.configMaps.grafana-resources = {
         metadata.name = name;
         metadata.labels.app = name;
         data = mapAttrs (name: value:
           if isAttrs value then builtins.toJSON value
           else builtins.readFile value
-        ) config.dashboards;
+        ) config.resources;
       };
     })]);
   };
