@@ -477,6 +477,7 @@ with lib;
       };
 
       kubernetes.resources.clusterRoleBindings.kube-state-metrics = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = "${name}-kube-state-metrics";
         metadata.labels.app = name;
         roleRef = {
