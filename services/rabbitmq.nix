@@ -147,7 +147,6 @@ with k8s;
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
-          type = "NodePort";
           selector.app = name;
           ports = [{
             name = "http";
