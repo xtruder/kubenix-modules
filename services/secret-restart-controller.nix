@@ -32,7 +32,7 @@ with lib;
                 image = config.image;
                 command = [
                   "/bin/k8s-secret-restart-controller"
-                  "-v=5"
+                  "-logtostderr"
                 ] ++ optionals (config.namespace != null) [
                   "-namespace"
                   "$(POD_NAMESPACE)"
