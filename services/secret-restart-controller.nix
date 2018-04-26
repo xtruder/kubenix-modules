@@ -3,12 +3,18 @@
 with lib;
 
 {
-  config.kubernetes.moduleDefinitions.secret-restart-controller.module = {name, config, ...}: {
+  config.kubernetes.moduleDefinitions.secret-restart-controller.module = {name, config, module, ...}: {
     options = {
       image = mkOption {
         description = "Name of the secret-restart-controller image to use";
         type = types.str;
         default = "xtruder/k8s-secret-restart-controller";
+      };
+
+      namespace = mkOption {
+        description = "Namespace where to run secret restart controller (if null in all namespaces)";
+        type = types.nullOr types.str;
+        default = module.namespace;
       };
     };
 
@@ -24,19 +30,10 @@ with lib;
               serviceAccountName = "secret-restart-controller";
               containers.secret-restart-controller = {
                 image = config.image;
-                env = [
-                  {
-                    name = "POD_NAMESPACE";
-                    valueFrom = {
-                      fieldRef = {
-                        fieldPath = "metadata.namespace";
-                      };
-                    };
-                  }
-                ];
                 command = [
                   "/bin/k8s-secret-restart-controller"
                   "-v=5"
+                ] ++ optionals (config.namespace != null) [
                   "-namespace"
                   "$(POD_NAMESPACE)"
                 ];
@@ -53,7 +50,7 @@ with lib;
         metadata.name = name;
         metadata.labels.app = name;
       };
-      kubernetes.resources.roles.secret-restart-controller = {
+      kubernetes.resources.clusterRoles.secret-restart-controller = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = name;
         metadata.labels.app = name;
@@ -67,18 +64,19 @@ with lib;
           verbs = ["create"];
         }];
       };
-      kubernetes.resources.roleBindings.secret-restart-controller = {
+      kubernetes.resources.clusterRoleBindings.secret-restart-controller = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = name;
         metadata.labels.app = name;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
-          kind = "Role";
+          kind = "ClusterRole";
           name = name;
         };
         subjects = [{
           kind = "ServiceAccount";
           name = name;
+          namespace = module.namespace;
         }];
       };
     };

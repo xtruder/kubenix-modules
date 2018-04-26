@@ -5,5 +5,6 @@
 
   kubernetes.modules.secret-restart-controller = {
     module = "secret-restart-controller";
+    configuration.namespace = null;
   };
 }
