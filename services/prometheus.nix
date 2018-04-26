@@ -77,6 +77,14 @@ with lib;
         default = {};
       };
 
+      tsdb = {
+        retention = mkOption {
+          description = "TSDB retention time";
+          default = "30d";
+          type = types.str;
+        };
+      };
+
       storage = {
         size = mkOption {
           description = "Prometheus storage size";
@@ -144,6 +152,7 @@ with lib;
                 args = [
                   "--config.file=/etc/config/prometheus.json"
                   "--storage.tsdb.path=/data"
+                  "--storage.tsdb.retention=${config.tsdb.retention}"
                   "--web.console.libraries=/etc/prometheus/console_libraries"
                   "--web.console.templates=/etc/prometheus/consoles"
                 ] ++ config.extraArgs;
