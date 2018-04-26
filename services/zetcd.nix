@@ -22,18 +22,11 @@ with lib;
         type = types.listOf types.str;
         default = ["etcd:2379"];
       };
-
-      namespace = mkOption {
-        description = "Name of the namespace where to deploy zetcd";
-        type = types.str;
-        default = "default";
-      };
     };
 
     config = {
       kubernetes.resources.deployments.zetcd = {
         metadata.name = name;
-        metadata.namespace = mkDefault config.namespace;
         metadata.labels.app = name;
         spec = {
           template = {
@@ -58,7 +51,6 @@ with lib;
 
       kubernetes.resources.services.zetcd = {
         metadata.name = name;
-        metadata.namespace = mkDefault config.namespace;
         metadata.labels.app = name;
         spec = {
           selector.app = name;
