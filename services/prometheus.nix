@@ -170,6 +170,12 @@ with lib;
                   timeoutSeconds = 30;
                 };
               };
+
+              securityContext = {
+                fsGroup = 2000;
+                runAsNonRoot = true;
+                runAsUser = 1000;
+              };
             };
           };
 
