@@ -83,12 +83,6 @@ in {
         };
       };
 
-      kubernetes.modules.prometheus-operator = {
-        name = "${name}-operator";
-        module = "prometheus-operator";
-        namespace = module.namespace;
-      };
-
       kubernetes.modules.kube-state-metrics = {
         name = "${name}-kube-state-metrics";
         module = "kube-state-metrics";
