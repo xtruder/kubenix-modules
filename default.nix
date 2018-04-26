@@ -40,6 +40,10 @@ in {
       configuration.imports = [./test/bitcoind.nix globalConfig];
     };
 
+    dashd = kubenix.buildResources {
+      configuration.imports = [./test/dashd.nix globalConfig];
+    };
+
     rabbitmq = kubenix.buildResources {
       configuration.imports = [./test/rabbitmq.nix globalConfig];
     };
