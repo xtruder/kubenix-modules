@@ -413,6 +413,7 @@ with lib;
       };
 
       kubernetes.resources.clusterRoles.prometheus-operator = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = name;
         metadata.labels.app = name;
         rules = [{
@@ -586,8 +587,9 @@ with lib;
       kubernetes.resources.serviceAccounts.kube-state-metrics.metadata.name = name;
 
       kubernetes.resources.clusterRoles.kube-state-metrics = {
+        apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = "${name}-kube-state-metrics";
-        metadata.labels.app = "${name}-kube-state-metrics";
+        metadata.labels.app = name;
         rules = [{
           apiGroups = [""];
           resources = [
@@ -628,7 +630,7 @@ with lib;
 
       kubernetes.resources.clusterRoleBindings.kube-state-metrics = {
         metadata.name = "${name}-kube-state-metrics";
-        metadata.labels.app = "${name}-kube-state-metrics";
+        metadata.labels.app = name;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
           kind = "ClusterRole";
@@ -643,6 +645,8 @@ with lib;
 
       kubernetes.resources.roles.kube-state-metrics-resizer = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
+        metadata.name = "${name}-kube-state-metrics";
+        metadata.labels.app = name;
         rules = [{
           apiGroups = [""];
           resources = ["pods"];
@@ -659,6 +663,7 @@ with lib;
       kubernetes.resources.roleBindings.kube-state-metrics = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
         metadata.name = "${name}-kube-state-metrics";
+        metadata.labels.app = name;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
           kind = "Role";
