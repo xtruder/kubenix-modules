@@ -236,7 +236,7 @@ with lib;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
           kind = "ClusterRole";
-          name = "prometheus";
+          name = name;
         };
         subjects = [{
           kind = "ServiceAccount";
