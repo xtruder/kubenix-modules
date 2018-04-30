@@ -47,6 +47,12 @@ with k8s;
         default = {};
       };
 
+      logLevel = mkOption {
+        description = "Terraform log level";
+        type = types.nullOr (types.enum ["TRACE" "DEBUG" "INFO" "WARN" "ERROR"]);
+        default = null;
+      };
+
       vars = mkOption {
         description = "Additional environment variables to set";
         type = types.attrsOf types.attrs;
@@ -73,6 +79,7 @@ with k8s;
               env = {
                 EXIT_ON_ERROR = mkIf config.exitOnError {value = "1";};
                 EXIT_ON_SUCCESS = mkIf config.exitOnSuccess {value = "1";};
+                TF_LOG = mkIf (config.logLevel != null) {value = config.logLevel;};
               } // mapAttrs' (name: value: nameValuePair "TF_VAR_${name}" value) config.vars;
               volumeMounts = [{
                 name = "resources";
