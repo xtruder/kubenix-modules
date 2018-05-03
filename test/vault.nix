@@ -6,7 +6,7 @@
   kubernetes.modules.vault = {
     module = "vault";
     configuration = {
-      listenInClusterTLS = true;
+      dev.enable = true;
     };
   };
 

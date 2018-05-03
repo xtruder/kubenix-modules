@@ -38,7 +38,10 @@ with k8s;
 
         token = mkSecretOption {
           description = "Development root token id";
-          default = null;
+          default = {
+            name = "vault-token";
+            key = "token";
+          };
         };
       };
 
@@ -102,6 +105,7 @@ with k8s;
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
+          podManagementPolicy = "Parallel";
           serviceName = name;
           replicas = config.replicas;
           selector.matchLabels.app = name;
@@ -118,7 +122,7 @@ with k8s;
                   VAULT_LOCAL_CONFIG.value = builtins.toJSON config.configuration;
                   VAULT_CLUSTER_INTERFACE.value = "eth0";
                   VAULT_REDIRECT_INTERFACE.value = "eth0";
-                  VAULT_DEV_ROOT_TOKEN_ID = mkIf (config.dev.token != null) (secretToEnv config.dev.token);
+                  VAULT_DEV_ROOT_TOKEN_ID = mkIf config.dev.enable (secretToEnv config.dev.token);
                   VAULT_CAPATH = mkIf (!config.dev.enable) {
                     value = "/cert/ca.crt";
                   };
@@ -172,26 +176,55 @@ with k8s;
         };
       };
 
-      kubernetes.resources.services.vault = {
-        metadata.name = name;
-        metadata.labels.app = name;
-        spec = {
-          ports = [{
-            name = "vault-ssl";
-            port = 8200;
-            targetPort = 8200;
-          } {
-            name = "vault-incluster";
-            port = 8300;
-            targetPort = 8300;
-          } {
-            name = "vault-unsecure";
-            port = 8400;
-            targetPort = 8400;
-          }];
-          selector.app = name;
+      kubernetes.resources.services = mkMerge ([{
+        vault = {
+          metadata.name = name;
+          metadata.labels.app = name;
+          spec = {
+            ports = [{
+              name = "vault-ssl";
+              port = 8200;
+              targetPort = 8200;
+            } {
+              name = "vault-incluster";
+              port = 8300;
+              targetPort = 8300;
+            } {
+              name = "vault-unsecure";
+              port = 8400;
+              targetPort = 8400;
+            }];
+            selector.app = name;
+          };
         };
-      };
+      }] ++ map (i: {
+        "vault-${toString i}" = {
+          metadata.name = "${name}-${toString i}";
+          metadata.labels.app = name;
+          metadata.annotations.
+            "service.alpha.kubernetes.io/tolerate-unready-endpoints" = "true";
+          spec = {
+            publishNotReadyAddresses = true;
+            ports = [{
+              name = "vault-ssl";
+              port = 8200;
+              targetPort = 8200;
+            } {
+              name = "vault-incluster";
+              port = 8300;
+              targetPort = 8300;
+            } {
+              name = "vault-unsecure";
+              port = 8400;
+              targetPort = 8400;
+            }];
+            selector = {
+              app = name;
+              "statefulset.kubernetes.io/pod-name" = "${name}-${toString i}";
+            };
+          };
+        };
+      }) (range 0 (config.replicas - 1)));
 
       kubernetes.resources.serviceAccounts.vault = {
         metadata.name = module.name;
