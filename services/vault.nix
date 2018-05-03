@@ -179,6 +179,13 @@ with k8s;
         };
       };
 
+      kubernetes.resources.podDisruptionBudgets.vault = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = name;
+      };
+
       kubernetes.resources.services = mkMerge ([{
         vault = {
           metadata.name = name;
