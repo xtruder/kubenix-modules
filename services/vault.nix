@@ -76,7 +76,10 @@ with k8s;
           resourcePath = ["statefulSets" "vault" "spec" "template" "spec"];
           serviceAccountName = module.name;
           mountContainer = "vault";
-          addresses = ["127.0.0.1" "vault" "vault.${module.namespace}"] ++ config.tls.additionalDomains;
+          addresses = ["127.0.0.1" "vault" "vault.${module.namespace}"]
+            ++ (map (i: "vault-${toString i}") (range 0 (config.replicas - 1))) 
+            ++ (map (i: "vault-${toString i}.${module.namespace}") (range 0 (config.replicas - 1))) 
+            ++ config.tls.additionalDomains;
         };
       };
 
