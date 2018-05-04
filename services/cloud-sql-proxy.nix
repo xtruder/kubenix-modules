@@ -68,7 +68,7 @@ with lib;
               };
               volumes = [{
                 name = "cloudsql-instance-credentials";
-                secret.name = "cloudsql-instance-credentials";
+                secret.secretName = "cloudsql-instance-credentials";
               }];
             };
           };
