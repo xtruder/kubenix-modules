@@ -12,12 +12,6 @@ with lib;
         default = "gcr.io/cloudsql-docker/gce-proxy:1.11";
       };
 
-      port = mkOption {
-        description = "Port which to expose from the container";
-        type = types.int;
-        default = 3306;
-      };
-
       instances = mkOption {
         description = "Cloud SQL Proxy instances to connect to";
         type = types.listOf types.string;
@@ -65,6 +59,11 @@ with lib;
 
                 args = ["/cloud_sql_proxy" "-instances" (concatStringsSep "," config.instances) "-credential_file" "/secrets/cloudsql/credentials.json"];
 
+                ports = [{
+                  name = "cloud-sql-proxy";
+                  containerPort = 3306;
+                }];
+
                 volumeMounts = [{
                   name = "cloudsql-instance-credentials";
                   mountPath = "/secrets/cloudsql";
@@ -87,8 +86,8 @@ with lib;
         spec.selector.app = name;
 
         spec.ports = [{
-          port = config.port;
-          targetPort = 3306;
+          name = "cloud-sql-proxy";
+          port = 3306;
         }];
       };
     };
