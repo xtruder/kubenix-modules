@@ -50,7 +50,7 @@ with lib;
               labels.app = name;
             };
             spec = {
-              containers.cloud_sql_proxy = {
+              containers.cloud-sql-proxy = {
                 image = config.image;
 
                 env = {
