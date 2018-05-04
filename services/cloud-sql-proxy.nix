@@ -24,7 +24,7 @@ with lib;
         default = [];
       };
 
-      credentials = {
+      dbCredentials = {
         username = mkSecretOption {
           description = "Google Cloud SQL username to use";
           default = null;
@@ -33,6 +33,11 @@ with lib;
           description = "Google Cloud SQL password to use";
           default = null;
         };
+      };
+
+      instanceCredentials = mkOption {
+        description = "Google Cloud SQL instance credentials file secret name";
+        type = types.string;
       };
     };
 
@@ -54,8 +59,8 @@ with lib;
                 image = config.image;
 
                 env = {
-                  DB_USER = mkIf (config.credentials.username != null) (secretToEnv config.credentials.username);
-                  DB_PASSWORD = mkIf (config.credentials.password != null) (secretToEnv config.credentials.password);
+                  DB_USER = mkIf (config.dbCredentials.username != null) (secretToEnv config.dbCredentials.username);
+                  DB_PASSWORD = mkIf (config.dbCredentials.password != null) (secretToEnv config.dbCredentials.password);
                 };
 
                 args = ["/cloud_sql_proxy" "-instances" (concatStringsSep "," config.instances) "-credential_file" "/secrets/cloudsql/credentials.json"];
@@ -68,7 +73,7 @@ with lib;
               };
               volumes = [{
                 name = "cloudsql-instance-credentials";
-                secret.secretName = "cloudsql-instance-credentials";
+                secret.secretName = "${config.instanceCredentials}";
               }];
             };
           };

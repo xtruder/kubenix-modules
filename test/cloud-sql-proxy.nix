@@ -9,7 +9,8 @@ with k8s;
     module = "cloud-sql-proxy";
 
     configuration = {
-      credentials = {
+      instanceCredentials = "file.json";
+      dbCredentials = {
         username = {
           name = "mysql-user";
           key = "username";
