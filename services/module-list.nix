@@ -36,4 +36,5 @@
   ./external-dns.nix
   ./mongodb.nix
   ./pritunl.nix
+  ./cloud-sql-proxy.nix
 ]
