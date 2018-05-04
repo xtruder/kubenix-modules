@@ -10,7 +10,6 @@ in {
         module = "prometheus";
         namespace = module.namespace;
         configuration = {
-          replicas = 1;
           rules = {
             "prometheus.rules" = ./prometheus/prometheus.rules;
           };
@@ -36,7 +35,6 @@ in {
         module = "prometheus-alertmanager";
         namespace = module.namespace;
         configuration = {
-          replicas = 1;
           route.receiver = "default";
           receivers.default = {};
         };
