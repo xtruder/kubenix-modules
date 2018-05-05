@@ -80,6 +80,17 @@ with lib;
                 name = "cloudsql-instance-credentials";
                 secret.secretName = "${config.instanceCredentials}";
               }];
+              affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution = [{
+                weight = 100;
+                podAffinityTerm = {
+                  labelSelector.matchExpressions = [{
+                    key = "app";
+                    operator = "In";
+                    values = [ name ];
+                  }];
+                  topologyKey = "kubernetes.io/hostname";
+                };
+              }];
             };
           };
         };
