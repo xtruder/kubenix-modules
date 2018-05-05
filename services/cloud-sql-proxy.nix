@@ -12,6 +12,12 @@ with lib;
         default = "gcr.io/cloudsql-docker/gce-proxy:1.11";
       };
 
+      replicas = mkOption {
+        description = "Number of replicas";
+        type = types.int;
+        default = 2;
+      };
+
       instances = mkOption {
         description = "Cloud SQL Proxy instances to connect to";
         type = types.listOf types.string;
@@ -42,7 +48,7 @@ with lib;
           labels.app = name;
         };
         spec = {
-          replicas = 1;
+          replicas = config.replicas;
           selector.matchLabels.app = name;
           template = {
             metadata = {
@@ -74,6 +80,17 @@ with lib;
                 name = "cloudsql-instance-credentials";
                 secret.secretName = "${config.instanceCredentials}";
               }];
+              affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution = [{
+                weight = 100;
+                podAffinityTerm = {
+                  labelSelector.matchExpressions = [{
+                    key = "app";
+                    operator = "In";
+                    values = [ name ];
+                  }];
+                  topologyKey = "kubernetes.io/hostname";
+                };
+              }];
             };
           };
         };
@@ -89,6 +106,13 @@ with lib;
           name = "cloud-sql-proxy";
           port = 3306;
         }];
+      };
+
+      kubernetes.resources.podDisruptionBudgets.cloud-sql-proxy = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = name;
       };
     };
   };
