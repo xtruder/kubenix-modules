@@ -135,9 +135,9 @@ with k8s;
                     else "http://127.0.0.1:8200";
                 };
                 resources = {
-                  requests.memory = "50Mi";
+                  requests.memory = "256Mi";
                   requests.cpu = "50m";
-                  limits.memory = "128Mi";
+                  limits.memory = "256Mi";
                   limits.cpu = "500m";
                 };
                 ports = [{
