@@ -195,6 +195,8 @@ in {
 
                   livenessProbe = mkIf (!isMaster) {
                     tcpSocket.port = 9300;
+                    initialDelaySeconds = 30;
+                    timeoutSeconds = 5;
                   };
                   readinessProbe = mkIf isClient {
                     httpGet = {
