@@ -9,13 +9,16 @@ with k8s;
     module = "influxdb";
 
     configuration = {
-      adminUsername = {
-        name = "influxdb-admin";
-        key = "username";
-      };
-      adminPassword = {
-        name = "influxdb-admin";
-        key = "password";
+      auth = {
+        enable = true;
+        adminUsername = {
+          name = "influxdb-admin";
+          key = "username";
+        };
+        adminPassword = {
+          name = "influxdb-admin";
+          key = "password";
+        };
       };
     };
   };

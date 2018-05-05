@@ -14,14 +14,18 @@ in {
         default = "influxdb:1.5.0";
       };
 
-      adminUsername = mkSecretOption {
-        description = "Influx admin username to pre-create. If this is unset, no admin user is created";
-        default = null;
-      };
+      auth = {
+        enable = mkEnableOption "influxdb auth";
 
-      adminPassword = mkSecretOption {
-        description = "Influx admin password to pre-create. If this is unset, no admin user is created";
-        default = null;
+        adminUsername = mkSecretOption {
+          description = "Influx admin username to pre-create. If this is unset, no admin user is created";
+          default = null;
+        };
+
+        adminPassword = mkSecretOption {
+          description = "Influx admin password to pre-create. If this is unset, no admin user is created";
+          default = null;
+        };
       };
 
       storage = {
@@ -53,8 +57,13 @@ in {
                 image = config.image;
 
                 env = {
-                  INFLUXDB_ADMIN_USER = mkIf (config.adminUsername != null) (secretToEnv config.adminUsername);
-                  INFLUXDB_ADMIN_PASSWORD = mkIf (config.adminPassword != null) (secretToEnv config.adminPassword);
+                  INFLUXDB_HTTP_AUTH_ENABLED = mkIf config.auth.enable {
+                    value = "true";
+                  };
+                  INFLUXDB_ADMIN_USER =
+                    mkIf (config.auth.adminUsername != null) (secretToEnv config.auth.adminUsername);
+                  INFLUXDB_ADMIN_PASSWORD =
+                    mkIf (config.auth.adminPassword != null) (secretToEnv config.auth.adminPassword);
                 };
 
                 ports = [{
