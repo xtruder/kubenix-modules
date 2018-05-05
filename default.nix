@@ -187,5 +187,9 @@ in {
     pritunl = kubenix.buildResources {
       configuration.imports = [./test/pritunl.nix globalConfig];
     };
+
+    cloud-sql-proxy = kubenix.buildResources {
+      configuration.imports = [./test/cloud-sql-proxy.nix globalConfig];
+    };
   };
 }
