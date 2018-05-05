@@ -107,6 +107,13 @@ with lib;
           port = 3306;
         }];
       };
+
+      kubernetes.resources.podDisruptionBudgets.cloud-sql-proxy = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = name;
+      };
     };
   };
 }
