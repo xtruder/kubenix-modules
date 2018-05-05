@@ -12,6 +12,12 @@ with lib;
         default = "gcr.io/cloudsql-docker/gce-proxy:1.11";
       };
 
+      replicas = mkOption {
+        description = "Number of replicas";
+        type = types.int;
+        default = 2;
+      };
+
       instances = mkOption {
         description = "Cloud SQL Proxy instances to connect to";
         type = types.listOf types.string;
@@ -42,7 +48,7 @@ with lib;
           labels.app = name;
         };
         spec = {
-          replicas = 1;
+          replicas = config.replicas;
           selector.matchLabels.app = name;
           template = {
             metadata = {
