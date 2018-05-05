@@ -136,7 +136,7 @@ with k8s;
                 };
                 resources = {
                   requests.memory = "256Mi";
-                  requests.cpu = "50m";
+                  requests.cpu = "100m";
                   limits.memory = "256Mi";
                   limits.cpu = "500m";
                 };
