@@ -710,7 +710,7 @@ with lib;
         size = mkOption {
           description = "Size of storage for redis per replica";
           type = types.str;
-          default = "${toString (config.nodes.memory + 50)}Mi";
+          default = "${toString (config.nodes.memory * 2)}Mi";
         };
 
         class = mkOption {
@@ -820,7 +820,7 @@ with lib;
 
                 resources.requests = {
                   cpu = "100m";
-                  memory = "${toString (config.nodes.memory + 50)}";
+                  memory = "${toString (config.nodes.memory + 50)}Mi";
                 };
 
                 readinessProbe = {
