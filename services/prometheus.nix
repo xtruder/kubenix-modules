@@ -492,7 +492,7 @@ with lib;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
           kind = "ClusterRole";
-          name = "kube-state-metrics";
+          name = name;
         };
         subjects = [{
           kind = "ServiceAccount";
