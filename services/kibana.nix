@@ -74,7 +74,7 @@ with lib;
                 image = config.image;
                 command = ["/usr/share/kibana/bin/kibana"];
                 ports = [{ containerPort = 5601; }];
-                resources.requests.memory = "512Mi";
+                resources.requests.memory = "256Mi";
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/usr/share/kibana/config";
