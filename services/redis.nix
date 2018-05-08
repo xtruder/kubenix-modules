@@ -710,7 +710,7 @@ with lib;
         size = mkOption {
           description = "Size of storage for redis per replica";
           type = types.str;
-          default = "${toString (config.nodes.memory * 2)}Mi";
+          default = "${toString (config.nodes.memory * 3)}Mi";
         };
 
         class = mkOption {
