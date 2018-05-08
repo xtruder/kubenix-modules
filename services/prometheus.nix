@@ -445,7 +445,7 @@ with lib;
 
       kubernetes.resources.clusterRoles.kube-state-metrics = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = "${name}-kube-state-metrics";
+        metadata.name = name;
         metadata.labels.app = name;
         rules = [{
           apiGroups = [""];
@@ -487,7 +487,7 @@ with lib;
 
       kubernetes.resources.clusterRoleBindings.kube-state-metrics = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = "${name}-kube-state-metrics";
+        metadata.name = name;
         metadata.labels.app = name;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
@@ -496,14 +496,14 @@ with lib;
         };
         subjects = [{
           kind = "ServiceAccount";
-          name = "${name}-kube-state-metrics";
+          name = name;
           namespace = module.namespace;
         }];
       };
 
       kubernetes.resources.roles.kube-state-metrics-resizer = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = "${name}-kube-state-metrics";
+        metadata.name = name;
         metadata.labels.app = name;
         rules = [{
           apiGroups = [""];
@@ -520,16 +520,16 @@ with lib;
 
       kubernetes.resources.roleBindings.kube-state-metrics = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = "${name}-kube-state-metrics";
+        metadata.name = name;
         metadata.labels.app = name;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
           kind = "Role";
-          name = "${name}-kube-state-metrics-resizer";
+          name = name;
         };
         subjects = [{
           kind = "ServiceAccount";
-          name = "${name}-kube-state-metrics";
+          name = name;
         }];
       };
     };
