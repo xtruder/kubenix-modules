@@ -866,6 +866,19 @@ with lib;
             metadata.labels.app = "${name}-sentinel";
             metadata.labels.component = "redis-sentinel";
             spec = {
+              initContainers = [{
+                name = "copy-config";
+                image = "busybox";
+                imagePullPolicy = "IfNotPresent";
+                command = ["cp" "/conf/redis.conf" "/etc/redis/redis.conf"];
+                volumeMounts = [{
+                  name = "conf";
+                  mountPath = "/conf";
+                } {
+                  name = "workdir";
+                  mountPath = "/etc/redis";
+                }];
+              }];
               containers.redis-sentinel = {
                 inherit (config) image;
                 command = [
@@ -881,6 +894,9 @@ with lib;
                 }];
                 volumeMounts = [{
                   name = "conf";
+                  mountPath = "/conf";
+                } {
+                  name = "workdir";
                   mountPath = "/etc/redis";
                 }];
 
@@ -912,6 +928,7 @@ with lib;
                 };
               };
               volumes.conf.configMap.name = name;
+              volumes.workdir.emptyDir = {};
             };
           };
         };
