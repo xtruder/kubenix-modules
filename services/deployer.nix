@@ -94,7 +94,9 @@ with k8s;
           };
         };
       } (optionalAttrs config.runAsJob {
-          spec.backoffLimit = 100;
+        spec.backoffLimit = 100;
+      }) (optionalAttrs (!config.runAsJob) {
+        spec.strategy.type = "Recreate";
       })];
 
       kubernetes.resources.configMaps.deployer = {
