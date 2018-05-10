@@ -102,6 +102,7 @@ with lib;
         metadata.labels.app = name;
         spec = {
           replicas = config.replicas;
+          strategy.type = "Recreate";
           selector.matchLabels.app = name;
           template = {
             metadata.name = name;
