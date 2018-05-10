@@ -44,7 +44,7 @@ with k8s;
             metadata.name = name;
             metadata.labels.app = name;
             spec = {
-              containers.vault = {
+              containers.vault-ui = {
                 image = config.image;
                 env = {
                   VAULT_URL_DEFAULT.value = config.vault.defaultUrl;
