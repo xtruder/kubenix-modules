@@ -726,14 +726,19 @@ with lib;
 
       kubernetes.resources.deployments.redis-proxy = {
         metadata.name = "${name}-proxy";
-        metadata.labels.app = "${name}-proxy";
+        metadata.labels.app = name;
         metadata.labels.component = "redis-proxy";
         spec = {
           replicas = config.proxy.replicas;
-          selector.matchLabels.app = "${name}-proxy";
+          selector.matchLabels = {
+            app = name;
+            component = "redis-proxy";
+          };
           template = {
-            metadata.labels.app = "${name}-proxy";
-            metadata.labels.component = "redis-proxy";
+            metadata.labels = {
+              app = name;
+              component = "redis-proxy";
+            };
             spec = {
               containers.redis-proxy = {
                 command = [
@@ -746,7 +751,6 @@ with lib;
                   name = "redis";
                   containerPort = 6379;
                 }];
-
                 resources.requests = {
                   cpu = "100m";
                   memory = "50Mi";
@@ -767,13 +771,14 @@ with lib;
 
       kubernetes.resources.statefulSets.redis-node = {
         metadata.name = "${name}-node";
-        metadata.labels.app = "${name}-node";
+        metadata.labels.app = name;
         metadata.labels.component = "redis-node";
         spec = {
+          podManagementPolicy = "Parallel";
           serviceName = "${name}-node";
           replicas = config.nodes.replicas;
           template = {
-            metadata.labels.app = "${name}-node";
+            metadata.labels.app = name;
             metadata.labels.component = "redis-node";
             metadata.annotations = {
               "prometheus.io/scrape" = "true";
@@ -792,20 +797,29 @@ with lib;
 
               containers.redis = {
                 command = ["bash" "-c" ''
+                  SLAVE_IP=$(getent hosts $POD_NAME.$POD_NAMESPACE | awk '{ print $1  }')
+
                   [[ `hostname` =~ -([0-9]+)$  ]] || exit 1
                   ordinal=''${BASH_REMATCH[1]}
                   if [[ $ordinal -eq 0  ]]; then
+
                     exec redis-server /etc/redis/redis.conf \
-                      ${optionalString (config.password != null) "--requirepass $REDIS_PASSWORD"}
+                      --slave-announce-ip $SLAVE_IP \
+                      ${optionalString (config.password != null) "--requirepass $REDIS_PASSWORD"} \
+                      ${optionalString (config.password != null) "--masterauth $REDIS_PASSWORD"}
                   else
                     exec redis-server /etc/redis/redis.conf \
-                      --slaveof redis-node-0.redis-node 6379 \
+                      --slaveof ${name}-node-0 6379 \
+                      --slave-announce-ip $SLAVE_IP \
                       ${optionalString (config.password != null) "--requirepass $REDIS_PASSWORD"} \
                       ${optionalString (config.password != null) "--masterauth $REDIS_PASSWORD"}
                   fi
                 ''];
                 image = config.image;
+                imagePullPolicy = "IfNotPresent";
                 env.REDIS_PASSWORD = mkIf (config.password != null) (secretToEnv config.password);
+                env.POD_NAME.valueFrom.fieldRef.fieldPath = "metadata.name";
+                env.POD_NAMESPACE.valueFrom.fieldRef.fieldPath = "metadata.namespace";
                 ports = [{
                   name = "redis";
                   containerPort = 6379;
@@ -855,22 +869,30 @@ with lib;
         spec.selector.matchLabels.app = "${name}-node";
       };
 
-      kubernetes.resources.deployments.redis-sentinel = {
+      kubernetes.resources.statefulSets.redis-sentinel = {
         metadata.name = "${name}-sentinel";
-        metadata.labels.app = "${name}-sentinel";
+        metadata.labels.app = name;
         metadata.labels.component = "redis-sentinel";
         spec = {
+          podManagementPolicy = "Parallel";
+          serviceName = "${name}-sentinel";
           replicas = config.sentinel.replicas;
-          selector.matchLabels.app = "${name}-sentinel";
+          selector.matchLabels.app = name;
+          selector.matchLabels.component = "redis-sentinel";
           template = {
-            metadata.labels.app = "${name}-sentinel";
+            metadata.labels.app = name;
             metadata.labels.component = "redis-sentinel";
             spec = {
               initContainers = [{
                 name = "copy-config";
                 image = "busybox";
                 imagePullPolicy = "IfNotPresent";
-                command = ["cp" "/conf/redis.conf" "/etc/redis/redis.conf"];
+                command = ["sh" "-c" ''
+                  if [ ! -f /etc/redis/redis.conf  ]; then
+                    cp /conf/redis.conf /etc/redis/redis.conf
+                    echo "sentinel monitor redis ${name}-node-0 6379 2">> /etc/redis/redis.conf
+                  fi
+                ''];
                 volumeMounts = [{
                   name = "conf";
                   mountPath = "/conf";
@@ -881,13 +903,15 @@ with lib;
               }];
               containers.redis-sentinel = {
                 inherit (config) image;
+                imagePullPolicy = "IfNotPresent";
                 command = [
                   "redis-sentinel" "/etc/redis/redis.conf"
                   "--port" "26379"
-                  "--sentinel" "monitor" "redis" "redis-node-0.redis-node" "6379" "2"
                   "--sentinel" "down-after-milliseconds" "redis" "5000"
+                  "--sentinel" "announce-ip" "$(POD_NAME)"
                 ] ++ optionals (config.password != null) ["--sentinel" "auth-pass" "redis" "$(REDIS_PASSWORD)"];
                 env.REDIS_PASSWORD = mkIf (config.password != null) (secretToEnv config.password);
+                env.POD_NAME.valueFrom.fieldRef.fieldPath = "metadata.name";
                 ports = [{
                   name = "redis-sentinel";
                   containerPort = 26379;
@@ -928,9 +952,15 @@ with lib;
                 };
               };
               volumes.conf.configMap.name = name;
-              volumes.workdir.emptyDir = {};
             };
           };
+          volumeClaimTemplates = [{
+            metadata.name = "workdir";
+            spec = {
+              accessModes = ["ReadWriteOnce"];
+              resources.requests.storage = "1G";
+            };
+          }];
         };
       };
 
@@ -939,48 +969,98 @@ with lib;
         metadata.labels.app = name;
         metadata.labels.component = "redis-sentinel";
         spec.maxUnavailable = 1;
-        spec.selector.matchLabels.app = "${name}-sentinel";
-      };
-
-      kubernetes.resources.services.redis-sentinel = {
-        metadata.name = "${name}-sentinel";
-        metadata.labels.app = "redis-sentinel";
-        metadata.labels.component = "redis-sentinel";
-        spec = {
-          ports = [{
-            name = "redis-sentinel";
-            port = 26379;
-          }];
-          selector.app = "${name}-sentinel";
+        spec.selector.matchLabels = {
+          app = name;
+          component = "redis-sentinel";
         };
       };
 
-      kubernetes.resources.services.redis-node = {
-        metadata.name = "${name}-node";
-        metadata.labels.app = "redis";
-        metadata.labels.component = "redis-node";
-        spec = {
-          ports = [{
-            name = "redis";
-            port = 6379;
-          }];
-          clusterIP = "None";
-          selector.app = "${name}-node";
+      kubernetes.resources.services = mkMerge ([{
+        redis-sentinel = {
+          metadata.name = "${name}-sentinel";
+          metadata.labels.app = name;
+          metadata.labels.component = "redis-sentinel";
+          spec = {
+            ports = [{
+              name = "redis-sentinel";
+              port = 26379;
+            }];
+            selector = {
+              app = name;
+              component = "redis-sentinel";
+            };
+          };
         };
-      };
 
-      kubernetes.resources.services.redis-proxy = {
-        metadata.name = name;
-        metadata.labels.app = "${name}-proxy";
-        metadata.labels.component = "redis-proxy";
-        spec = {
-          ports = [{
-            name = "redis";
-            port = 6379;
-          }];
-          selector.app = "${name}-proxy";
+        redis-node = {
+          metadata.name = "${name}-node";
+          metadata.labels.app = "redis";
+          metadata.labels.component = "redis-node";
+          spec = {
+            ports = [{
+              name = "redis";
+              port = 6379;
+            }];
+            clusterIP = "None";
+            selector = {
+              app = name;
+              component = "redis-node";
+            };
+          };
         };
-      };
+
+        redis-proxy = {
+          metadata.name = name;
+          metadata.labels.app = name;
+          metadata.labels.component = "redis-proxy";
+          spec = {
+            ports = [{
+              name = "redis";
+              port = 6379;
+            }];
+            selector = {
+              app = name;
+              component = "redis-proxy";
+            };
+          };
+        };
+      }] ++ (map (i: {
+        "redis-sentinel-${toString i}" = {
+          metadata.name = "${name}-sentinel-${toString i}";
+          metadata.labels.app = name;
+          metadata.labels.component = "redis-sentinel";
+          spec = {
+            ports = [{
+              name = "redis-sentinel";
+              port = 26379;
+            }];
+            selector = {
+              app = name;
+              component = "redis-sentinel";
+              "statefulset.kubernetes.io/pod-name" = "${name}-sentinel-${toString i}";
+            };
+          };
+        };
+      }) (range 0 (config.sentinel.replicas - 1))) ++ (map (i: {
+        "redis-node-${toString i}" = {
+          metadata.name = "${name}-node-${toString i}";
+          metadata.labels.app = name;
+          metadata.labels.component = "redis-node";
+          metadata.annotations.
+            "service.alpha.kubernetes.io/tolerate-unready-endpoints" = "true";
+          spec = {
+            ports = [{
+              name = "redis";
+              port = 6379;
+            }];
+            selector = {
+              app = name;
+              component = "redis-node";
+              "statefulset.kubernetes.io/pod-name" = "${name}-node-${toString i}";
+            };
+          };
+        };
+      }) (range 0 (config.nodes.replicas - 1))));
     };
   };
 }
