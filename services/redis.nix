@@ -676,6 +676,18 @@ with lib;
           default = 256;
           type = types.int;
         };
+
+        cpu = mkOption {
+          description = "Requested node cpu";
+          default = "100m";
+          type = types.str;
+        };
+
+        limit = mkOption {
+          description = "CPU limit";
+          default = "1000m";
+          type = types.str;
+        };
       };
 
       proxy = {
@@ -755,6 +767,7 @@ with lib;
                   cpu = "100m";
                   memory = "50Mi";
                 };
+                resources.limits.cpu = "1000m";
               };
             };
           };
@@ -833,9 +846,10 @@ with lib;
                 }];
 
                 resources.requests = {
-                  cpu = "100m";
+                  cpu = config.nodes.cpu;
                   memory = "${toString (config.nodes.memory + 50)}Mi";
                 };
+                resources.limits.cpu = config.nodes.limit;
 
                 readinessProbe = {
                   exec.command = ["sh" "-c" ''
