@@ -809,7 +809,7 @@ with lib;
               };
 
               containers.redis = {
-                command = ["bash" "-c" ''
+                command = ["bash" "-ec" ''
                   SLAVE_IP=$(getent hosts $POD_NAME.$POD_NAMESPACE | awk '{ print $1  }')
 
                   [[ `hostname` =~ -([0-9]+)$  ]] || exit 1
