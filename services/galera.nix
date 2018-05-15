@@ -58,6 +58,12 @@ with k8s;
         };
       };
 
+      extraArgs = mkOption {
+        description = "Extra arguments passed to mariadb";
+        type = types.listOf types.str;
+        default = [];
+      };
+
       storage = {
         class = mkOption {
           description = "Name of the storage class to use";
@@ -98,6 +104,7 @@ with k8s;
             spec = {
               containers.galera = {
                 image = config.image;
+                args = config.extraArgs;
                 env = {
                   MYSQL_ROOT_PASSWORD = secretToEnv config.rootPassword;
                   DISCOVERY_SERVICE.value = config.discoveryService;
