@@ -108,7 +108,7 @@ with lib;
                 }];
                 resources.requests = {
                   cpu = "100m";
-                  memory = "512Mi";
+                  memory = "256Mi";
                 };
                 command = ["/bin/sh" "-ecx" ''
 									IP=$(hostname -i)
