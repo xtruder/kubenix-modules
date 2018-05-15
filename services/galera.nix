@@ -88,7 +88,6 @@ with k8s;
             port = 3306;
             name = "mysql";
           }];
-          clusterIP = "None";
           selector.app = name;
         };
       };
