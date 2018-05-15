@@ -799,6 +799,8 @@ with lib;
             };
 
             spec = {
+              # allow up to 5 minutes for redis node to shutdown
+              terminationGracePeriodSeconds = 300;
               containers.metrics = {
                 image = "oliver006/redis_exporter";
                 env.REDIS_PASSWORD = mkIf (config.password != null) (secretToEnv config.password);
