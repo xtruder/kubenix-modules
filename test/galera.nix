@@ -13,7 +13,9 @@ with k8s;
       mysql = {
         database = "test";
         user.name = "mysql-user";
+        user.key = "username";
         password.name = "mysql-user";
+        password.key = "password";
       };
       xtrabackupPassword.name = "mysql-xtrabackup-password";
       replicas = 3;
