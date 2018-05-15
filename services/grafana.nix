@@ -8,7 +8,7 @@ with lib;
     options = {
       image = mkOption {
         description = "Version of grafana to use";
-        default = "grafana/grafana:5.0.4";
+        default = "grafana/grafana:5.1.2";
         type = types.str;
       };
 
