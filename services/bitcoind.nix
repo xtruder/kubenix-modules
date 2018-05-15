@@ -13,10 +13,10 @@ with lib;
 # Network-related settings:
 
 # Run on the test network instead of the real bitcoin network.
-testnet=${ toString config.testnet }
+${if config.testnet then "testnet=${ toString config.testnet }" else ""}
 
 # Run a regression test network
-regtest=${ toString config.regtest }
+${if config.regtest then "regtest=${ toString config.regtest }" else ""}
 
 # Connect via a SOCKS5 proxy
 #proxy=127.0.0.1:9050
