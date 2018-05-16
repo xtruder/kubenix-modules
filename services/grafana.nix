@@ -4,7 +4,20 @@ with k8s;
 with lib;
 
 {
-  config.kubernetes.moduleDefinitions.grafana.module = {name, config, ...}: {
+  config.kubernetes.moduleDefinitions.grafana.module = {name, config, ...}:
+    let
+      configFiles = (mapAttrs' (n: v:
+        let
+          file = "${configMapName}-${ext}";
+          configMapName = "${builtins.hashString "sha1" "${name}-${n}"}";
+          ext = last (splitString "-" n);
+          value = (if isAttrs v then builtins.toJSON v else builtins.readFile v);
+        in
+          nameValuePair file {
+            inherit configMapName ext value;
+          }
+      ) (config.resources));
+    in {
     options = {
       image = mkOption {
         description = "Version of grafana to use";
@@ -71,7 +84,13 @@ with lib;
       };
 
       resources = mkOption {
-        description = "Attribute set of grafana resources to deploy";
+        description = "Attribute set of grafana resources to deploy (each resource key must end with resource type and an file ext, example: <some name>-<resource>.json)";
+        example = literalExample ''
+        {
+          "pods-dashboard.json" = ./prometheus/pods-dashboard.json;
+          "prometheus-datasource.json" = {};
+        }
+        '';
         default = {};
       };
 
@@ -218,23 +237,26 @@ with lib;
                 cpu = "100m";
               };
             };
-            volumeMounts = [{
-              name = "resources";
-              mountPath = "/var/grafana-resources";
-            }];
+            volumeMounts = mapAttrsToList (n: v: {
+              name = v.configMapName;
+              mountPath = "/var/grafana-resources/${n}";
+              subPath = n;
+              readOnly = true;
+            }) configFiles;
           };
-          volumes.resources.configMap.name = name;
+          volumes = mapAttrs' (n: v: nameValuePair v.configMapName {
+            configMap.name = v.configMapName;
+          }) configFiles;
         };
       };
 
-      kubernetes.resources.configMaps.grafana-resources = {
-        metadata.name = name;
-        metadata.labels.app = name;
-        data = mapAttrs (name: value:
-          if isAttrs value then builtins.toJSON value
-          else builtins.readFile value
-        ) config.resources;
-      };
+      kubernetes.resources.configMaps = mapAttrs' (n: v:
+        nameValuePair v.configMapName {
+          metadata.name = v.configMapName;
+          metadata.labels.app = name;
+          data."${n}" = v.value;
+        }
+      ) configFiles;
     })]);
   };
 }

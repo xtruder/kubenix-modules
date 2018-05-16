@@ -33,6 +33,17 @@ with lib;
         }];
       };
     };
+    configFiles = (mapAttrs' (n: v:
+      let
+        file = "${configMapName}.${ext}";
+        configMapName = "${builtins.hashString "sha1" "${name}-${n}"}";
+        ext = last (splitString "." n);
+        value = (if isAttrs v then builtins.toJSON v else builtins.readFile v);
+      in
+        nameValuePair file {
+          inherit configMapName ext value;
+        }
+    ) (config.rules // config.alerts));
   in {
     options = {
       image = mkOption {
@@ -132,7 +143,11 @@ with lib;
             metadata.labels.app = name;
             spec = {
               serviceAccountName = name;
-              volumes.config.configMap.name = name;
+              volumes = (mapAttrs' (n: v: nameValuePair v.configMapName {
+                configMap.name = v.configMapName;
+              }) configFiles) // {
+                config.configMap.name = name;
+              };
 
               containers.server-reload = {
                 image = "jimmidyson/configmap-reload:v0.2.2";
@@ -140,9 +155,15 @@ with lib;
                   "--volume-dir=/etc/config"
                   "--webhook-url=http://localhost:9090/-/reload"
                 ];
-                volumeMounts = [{
+                volumeMounts = (mapAttrsToList (n: v: {
+                  name = v.configMapName;
+                  mountPath = "/etc/config/${n}";
+                  subPath = n;
+                  readOnly = true;
+                }) configFiles) ++ [{
                   name = "config";
-                  mountPath = "/etc/config";
+                  mountPath = "/etc/config/prometheus.json";
+                  subPath = "prometheus.json";
                   readOnly = true;
                 }];
               };
@@ -215,18 +236,20 @@ with lib;
         };
       };
 
-      kubernetes.resources.configMaps.prometheus = {
-        metadata.name = name;
-        metadata.labels.app = name;
-        data = {
-          "prometheus.json" = builtins.toJSON prometheusConfig;
-        } // (mapAttrs (name: value:
-          if isAttrs value then builtins.toJSON value
-          else builtins.readFile value
-        ) config.alerts) // (mapAttrs (name: value:
-          if isAttrs value then builtins.toJSON value
-          else builtins.readFile value
-        ) config.rules);
+      kubernetes.resources.configMaps = (mapAttrs' (n: v:
+        nameValuePair v.configMapName {
+          metadata.name = v.configMapName;
+          metadata.labels.app = name;
+          data."${n}" = v.value;
+        }
+      ) configFiles) // {
+        prometheus = {
+          metadata.name = name;
+          metadata.labels.app = name;
+          data = {
+            "prometheus.json" = builtins.toJSON prometheusConfig;
+          };
+        };
       };
 
       kubernetes.resources.clusterRoleBindings.prometheus = {
