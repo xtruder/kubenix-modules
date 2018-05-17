@@ -73,6 +73,13 @@ with lib;
         };
       };
 
+      kubernetes.resources.podDisruptionBudgets.pritunl = {
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
+        spec.minAvailable = 1;
+        spec.selector.matchLabels.app = module.name;
+      };
+
       kubernetes.resources.services.pritunl = {
         metadata.name = module.name;
         metadata.labels.app = module.name;
