@@ -127,6 +127,7 @@ with lib;
             metadata.name = name;
             metadata.labels.app = name;
             spec = {
+              securityContext.fsGroup = 472;
               containers.grafana = {
                 image = config.image;
                 env = {
