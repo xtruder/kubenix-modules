@@ -11,7 +11,7 @@ with k8s;
       rootUrl = "grafana.default.svc.cluster.local";
       adminPassword.name = "grafana-user";
       db.type = "sqlite3";
-      dashboards = {
+      resources = {
         deployments = ../services/prometheus/deployment-dashboard.json;
       };
     };
