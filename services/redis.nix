@@ -4,7 +4,7 @@ with k8s;
 with lib;
 
 {
-  config.kubernetes.moduleDefinitions.redis.module = {name, config, ...}: let
+  config.kubernetes.moduleDefinitions.redis.module = {module, config, ...}: let
     b2s = value: if value then "yes" else "no";
     redisConfig = ''
       # Redis configuration file example.
@@ -737,18 +737,18 @@ with lib;
       kubernetes.resources.configMaps.redis.data."redis.conf" = redisConfig;
 
       kubernetes.resources.deployments.redis-proxy = {
-        metadata.name = "${name}-proxy";
-        metadata.labels.app = name;
+        metadata.name = "${module.name}-proxy";
+        metadata.labels.app = module.name;
         metadata.labels.component = "redis-proxy";
         spec = {
           replicas = config.proxy.replicas;
           selector.matchLabels = {
-            app = name;
+            app = module.name;
             component = "redis-proxy";
           };
           template = {
             metadata.labels = {
-              app = name;
+              app = module.name;
               component = "redis-proxy";
             };
             spec = {
@@ -756,7 +756,7 @@ with lib;
                 command = [
                   "redis-ellison"
                   "-cluster" "redis"
-                  "-sentinel-host" "${name}-sentinel"
+                  "-sentinel-host" "${module.name}-sentinel"
                 ] ++ (optionals (config.proxy.command != "") ["-redis-command" config.proxy.command]);
                 image = config.proxy.image;
                 ports = [{
@@ -775,23 +775,23 @@ with lib;
       };
 
       kubernetes.resources.podDisruptionBudgets.redis-proxy = {
-        metadata.name = "${name}-proxy";
-        metadata.labels.app = name;
+        metadata.name = "${module.name}-proxy";
+        metadata.labels.app = module.name;
         metadata.labels.component = "redis-proxy";
         spec.maxUnavailable = 1;
-        spec.selector.matchLabels.app = "${name}-proxy";
+        spec.selector.matchLabels.app = "${module.name}-proxy";
       };
 
       kubernetes.resources.statefulSets.redis-node = {
-        metadata.name = "${name}-node";
-        metadata.labels.app = name;
+        metadata.name = "${module.name}-node";
+        metadata.labels.app = module.name;
         metadata.labels.component = "redis-node";
         spec = {
           podManagementPolicy = "Parallel";
-          serviceName = "${name}-node";
+          serviceName = "${module.name}-node";
           replicas = config.nodes.replicas;
           template = {
-            metadata.labels.app = name;
+            metadata.labels.app = module.name;
             metadata.labels.component = "redis-node";
             metadata.annotations = {
               "prometheus.io/scrape" = "true";
@@ -824,7 +824,7 @@ with lib;
                       ${optionalString (config.password != null) "--masterauth $REDIS_PASSWORD"}
                   else
                     exec redis-server /etc/redis/redis.conf \
-                      --slaveof ${name}-node-0 6379 \
+                      --slaveof ${module.name}-node-0 6379 \
                       --slave-announce-ip $SLAVE_IP \
                       ${optionalString (config.password != null) "--requirepass $REDIS_PASSWORD"} \
                       ${optionalString (config.password != null) "--masterauth $REDIS_PASSWORD"}
@@ -862,7 +862,7 @@ with lib;
                 };
               };
 
-              volumes.conf.configMap.name = name;
+              volumes.conf.configMap.name = module.name;
             };
           };
 
@@ -878,25 +878,25 @@ with lib;
       };
 
       kubernetes.resources.podDisruptionBudgets.redis-node = {
-        metadata.name = "${name}-node";
-        metadata.labels.app = name;
+        metadata.name = "${module.name}-node";
+        metadata.labels.app = module.name;
         metadata.labels.component = "redis-node";
         spec.maxUnavailable = 1;
-        spec.selector.matchLabels.app = "${name}-node";
+        spec.selector.matchLabels.app = "${module.name}-node";
       };
 
       kubernetes.resources.statefulSets.redis-sentinel = {
-        metadata.name = "${name}-sentinel";
-        metadata.labels.app = name;
+        metadata.name = "${module.name}-sentinel";
+        metadata.labels.app = module.name;
         metadata.labels.component = "redis-sentinel";
         spec = {
           podManagementPolicy = "Parallel";
-          serviceName = "${name}-sentinel";
+          serviceName = "${module.name}-sentinel";
           replicas = config.sentinel.replicas;
-          selector.matchLabels.app = name;
+          selector.matchLabels.app = module.name;
           selector.matchLabels.component = "redis-sentinel";
           template = {
-            metadata.labels.app = name;
+            metadata.labels.app = module.name;
             metadata.labels.component = "redis-sentinel";
             spec = {
               initContainers = [{
@@ -906,7 +906,7 @@ with lib;
                 command = ["sh" "-c" ''
                   if [ ! -f /etc/redis/redis.conf  ]; then
                     cp /conf/redis.conf /etc/redis/redis.conf
-                    echo "sentinel monitor redis ${name}-node-0 6379 2">> /etc/redis/redis.conf
+                    echo "sentinel monitor redis ${module.name}-node-0 6379 2">> /etc/redis/redis.conf
                   fi
                 ''];
                 volumeMounts = [{
@@ -917,6 +917,7 @@ with lib;
                   mountPath = "/etc/redis";
                 }];
               }];
+
               containers.redis-sentinel = {
                 inherit (config) image;
                 imagePullPolicy = "IfNotPresent";
@@ -967,7 +968,7 @@ with lib;
                   failureThreshold = 5;
                 };
               };
-              volumes.conf.configMap.name = name;
+              volumes.conf.configMap.name = module.name;
             };
           };
           volumeClaimTemplates = [{
@@ -981,20 +982,20 @@ with lib;
       };
 
       kubernetes.resources.podDisruptionBudgets.redis-sentinel = {
-        metadata.name = "${name}-sentinel";
-        metadata.labels.app = name;
+        metadata.name = "${module.name}-sentinel";
+        metadata.labels.app = module.name;
         metadata.labels.component = "redis-sentinel";
         spec.maxUnavailable = 1;
         spec.selector.matchLabels = {
-          app = name;
+          app = module.name;
           component = "redis-sentinel";
         };
       };
 
       kubernetes.resources.services = mkMerge ([{
         redis-sentinel = {
-          metadata.name = "${name}-sentinel";
-          metadata.labels.app = name;
+          metadata.name = "${module.name}-sentinel";
+          metadata.labels.app = module.name;
           metadata.labels.component = "redis-sentinel";
           spec = {
             ports = [{
@@ -1002,14 +1003,14 @@ with lib;
               port = 26379;
             }];
             selector = {
-              app = name;
+              app = module.name;
               component = "redis-sentinel";
             };
           };
         };
 
         redis-node = {
-          metadata.name = "${name}-node";
+          metadata.name = "${module.name}-node";
           metadata.labels.app = "redis";
           metadata.labels.component = "redis-node";
           spec = {
@@ -1019,15 +1020,15 @@ with lib;
             }];
             clusterIP = "None";
             selector = {
-              app = name;
+              app = module.name;
               component = "redis-node";
             };
           };
         };
 
         redis-proxy = {
-          metadata.name = name;
-          metadata.labels.app = name;
+          metadata.name = module.name;
+          metadata.labels.app = module.name;
           metadata.labels.component = "redis-proxy";
           spec = {
             ports = [{
@@ -1035,15 +1036,15 @@ with lib;
               port = 6379;
             }];
             selector = {
-              app = name;
+              app = module.name;
               component = "redis-proxy";
             };
           };
         };
       }] ++ (map (i: {
         "redis-sentinel-${toString i}" = {
-          metadata.name = "${name}-sentinel-${toString i}";
-          metadata.labels.app = name;
+          metadata.name = "${module.name}-sentinel-${toString i}";
+          metadata.labels.app = module.name;
           metadata.labels.component = "redis-sentinel";
           spec = {
             ports = [{
@@ -1051,16 +1052,16 @@ with lib;
               port = 26379;
             }];
             selector = {
-              app = name;
+              app = module.name;
               component = "redis-sentinel";
-              "statefulset.kubernetes.io/pod-name" = "${name}-sentinel-${toString i}";
+              "statefulset.kubernetes.io/pod-name" = "${module.name}-sentinel-${toString i}";
             };
           };
         };
       }) (range 0 (config.sentinel.replicas - 1))) ++ (map (i: {
         "redis-node-${toString i}" = {
-          metadata.name = "${name}-node-${toString i}";
-          metadata.labels.app = name;
+          metadata.name = "${module.name}-node-${toString i}";
+          metadata.labels.app = module.name;
           metadata.labels.component = "redis-node";
           metadata.annotations.
             "service.alpha.kubernetes.io/tolerate-unready-endpoints" = "true";
@@ -1070,9 +1071,9 @@ with lib;
               port = 6379;
             }];
             selector = {
-              app = name;
+              app = module.name;
               component = "redis-node";
-              "statefulset.kubernetes.io/pod-name" = "${name}-node-${toString i}";
+              "statefulset.kubernetes.io/pod-name" = "${module.name}-node-${toString i}";
             };
           };
         };
