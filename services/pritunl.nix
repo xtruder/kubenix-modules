@@ -31,12 +31,13 @@ with lib;
     };
 
     config = {
-      kubernetes.resources.deployments.pritunl = {
+      kubernetes.resources.statefulSets.pritunl = {
         metadata = {
           name = module.name;
           labels.app = module.name;
         };
         spec = {
+          serviceName = module.name;
           replicas = config.replicas;
           selector.matchLabels.app = module.name;
           template = {
