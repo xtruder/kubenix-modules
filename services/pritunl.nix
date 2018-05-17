@@ -56,9 +56,20 @@ with lib;
                 } {
                   containerPort = 1194;
                 }] ++ map (port: {containerPort = port;}) config.extraPorts;
+                volumeMounts = [{
+                  name = "workdir";
+                  mountPath = "/var/lib/pritunl";
+                }];
               };
             };
           };
+          volumeClaimTemplates = [{
+            metadata.name = "workdir";
+            spec = {
+              accessModes = ["ReadWriteOnce"];
+              resources.requests.storage = "1G";
+            };
+          }];
         };
       };
 
