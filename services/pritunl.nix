@@ -43,6 +43,18 @@ with lib;
           template = {
             metadata.labels.app = module.name;
             spec = {
+              affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution = [{
+                weight = 100;
+                podAffinityTerm = {
+                  labelSelector.matchExpressions = [{
+                    key = "app";
+                    operator = "In";
+                    values = [ module.name ];
+                  }];
+                  topologyKey = "kubernetes.io/hostname";
+                };
+              }];
+
               containers.pritunl = {
                 image = config.image;
                 env.PRITUNL_MONGODB_URI.value = config.mongodbUri;
