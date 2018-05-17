@@ -752,6 +752,18 @@ with lib;
               component = "redis-proxy";
             };
             spec = {
+              affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution = [{
+                weight = 100;
+                podAffinityTerm = {
+                  labelSelector.matchExpressions = [{
+                    key = "app";
+                    operator = "In";
+                    values = [ module.name ];
+                  }];
+                  topologyKey = "kubernetes.io/hostname";
+                };
+              }];
+
               containers.redis-proxy = {
                 command = [
                   "redis-ellison"
@@ -799,6 +811,18 @@ with lib;
             };
 
             spec = {
+              affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution = [{
+                weight = 100;
+                podAffinityTerm = {
+                  labelSelector.matchExpressions = [{
+                    key = "app";
+                    operator = "In";
+                    values = [ module.name ];
+                  }];
+                  topologyKey = "kubernetes.io/hostname";
+                };
+              }];
+
               # allow up to 5 minutes for redis node to shutdown
               terminationGracePeriodSeconds = 300;
               containers.metrics = {
@@ -899,6 +923,18 @@ with lib;
             metadata.labels.app = module.name;
             metadata.labels.component = "redis-sentinel";
             spec = {
+              affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution = [{
+                weight = 100;
+                podAffinityTerm = {
+                  labelSelector.matchExpressions = [{
+                    key = "app";
+                    operator = "In";
+                    values = [ module.name ];
+                  }];
+                  topologyKey = "kubernetes.io/hostname";
+                };
+              }];
+
               initContainers = [{
                 name = "copy-config";
                 image = "busybox";
