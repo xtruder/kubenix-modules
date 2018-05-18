@@ -8,8 +8,9 @@ with lib;
     let
       configFiles = (mapAttrs' (n: v:
         let
-          file = "${configMapName}-dashboard.json";
+          file = "${configMapName}-${suffix}";
           configMapName = "${name}-${builtins.substring 0 8 (builtins.hashString "sha1" n)}";
+          suffix = last (splitString "-" n);
           value = (if isAttrs v then builtins.toJSON v else builtins.readFile v);
         in
           nameValuePair file {
