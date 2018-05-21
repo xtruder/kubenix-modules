@@ -80,11 +80,13 @@ with lib;
 
       rules = mkOption {
         description = "Attribute set of prometheus recording rules to deploy";
+        type = types.attrs;
         default = {};
       };
 
       alerts = mkOption {
         description = "Attribute set of alert rules to deploy";
+        type = types.attrs;
         default = {};
       };
 
