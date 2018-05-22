@@ -67,7 +67,7 @@ with lib;
 
         host = mkOption {
           description = "Alertmanager host";
-          default = "prometheus-alertmanager:9093";
+          default = "${module.name}-alertmanager:9093";
           type = types.str;
         };
       };
