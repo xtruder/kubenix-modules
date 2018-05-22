@@ -4,7 +4,7 @@ with k8s;
 with lib;
 
 {
-  config.kubernetes.moduleDefinitions.prometheus.module = {name, config, module, ...}: let
+  config.kubernetes.moduleDefinitions.prometheus.module = {config, module, ...}: let
     prometheusConfig = {
       global = {
         external_labels = config.externalLabels;
@@ -36,9 +36,9 @@ with lib;
     configFiles = (mapAttrs' (n: v:
       let
         file = "${configMapName}.${ext}";
-        configMapName = "${name}-${builtins.substring 0 8 (builtins.hashString "sha1" n)}";
-        ext = last (splitString "." n);
+        configMapName = "${module.name}-${removeSuffix ext n}";
         value = (if isAttrs v then builtins.toJSON v else builtins.readFile v);
+        ext = last (splitString "." n);
       in
         nameValuePair file {
           inherit configMapName value;
@@ -133,22 +133,22 @@ with lib;
 
     config = {
       kubernetes.resources.statefulSets.prometheus = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
-          serviceName = name;
+          serviceName = module.name;
           replicas = config.replicas;
-          selector.matchLabels.app = name;
+          selector.matchLabels.app = module.name;
           podManagementPolicy = "Parallel";
           template = {
-            metadata.name = name;
-            metadata.labels.app = name;
+            metadata.name = module.name;
+            metadata.labels.app = module.name;
             spec = {
-              serviceAccountName = name;
+              serviceAccountName = module.name;
               volumes = (mapAttrs' (n: v: nameValuePair v.configMapName {
                 configMap.name = v.configMapName;
               }) configFiles) // {
-                config.configMap.name = name;
+                config.configMap.name = module.name;
               };
 
               containers.server-reload = {
@@ -183,6 +183,16 @@ with lib;
                   name = "prometheus";
                   containerPort = 9090;
                 }];
+                resources = {
+                  requests = {
+                    memory = "512Mi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "512Mi";
+                    cpu = "500m";
+                  };
+                };
                 volumeMounts = {
                   export = {
                     name = "storage";
@@ -222,11 +232,17 @@ with lib;
         };
       };
 
-      kubernetes.resources.serviceAccounts.prometheus.metadata.name = name;
+      kubernetes.resources.serviceAccounts.prometheus.metadata.name = module.name;
+
+      kubernetes.resources.podDisruptionBudgets.prometheus = {
+        metadata.name = module.name;
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = module.name;
+      };
 
       kubernetes.resources.services.prometheus = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
           ports = [{
             name = "prometheus";
@@ -234,20 +250,20 @@ with lib;
             targetPort = 9090;
             protocol = "TCP";
           }];
-          selector.app = name;
+          selector.app = module.name;
         };
       };
 
       kubernetes.resources.configMaps = (mapAttrs' (n: v:
         nameValuePair v.configMapName {
           metadata.name = v.configMapName;
-          metadata.labels.app = name;
+          metadata.labels.app = module.name;
           data."${n}" = v.value;
         }
       ) configFiles) // {
         prometheus = {
-          metadata.name = name;
-          metadata.labels.app = name;
+          metadata.name = module.name;
+          metadata.labels.app = module.name;
           data = {
             "prometheus.json" = builtins.toJSON prometheusConfig;
           };
@@ -256,24 +272,24 @@ with lib;
 
       kubernetes.resources.clusterRoleBindings.prometheus = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
           kind = "ClusterRole";
-          name = name;
+          name = module.name;
         };
         subjects = [{
           kind = "ServiceAccount";
-          name = name;
+          name = module.name;
           namespace = module.namespace;
         }];
       };
 
       kubernetes.resources.clusterRoles.prometheus = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         rules = [{
           apiGroups = [""];
           resources = [
@@ -299,7 +315,7 @@ with lib;
     };
   };
 
-  config.kubernetes.moduleDefinitions.prometheus-pushgateway.module = {name, config, ...}: {
+  config.kubernetes.moduleDefinitions.prometheus-pushgateway.module = {config, module, ...}: {
     options = {
       image = mkOption {
         description = "Image to use for prometheus pushgateway";
@@ -316,16 +332,16 @@ with lib;
 
     config = {
       kubernetes.resources.deployments.prometheus-pushgateway = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
           replicas = config.replicas;
-          selector.matchLabels.app = name;
+          selector.matchLabels.app = module.name;
           template = {
-            metadata.name = name;
-            metadata.labels.app = name;
+            metadata.name = module.name;
+            metadata.labels.app = module.name;
             spec = {
-              containers.prometheus = {
+              containers.prometheus-pushgateway = {
                 image = config.image;
                 ports = [{
                   name = "prometheus-push";
@@ -356,8 +372,8 @@ with lib;
       };
 
       kubernetes.resources.services.prometheus-pushgateway = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         metadata.annotations."prometheus.io/probe" = "pushgateway";
         metadata.annotations."prometheus.io/scrape" = "true";
         spec = {
@@ -367,13 +383,13 @@ with lib;
             targetPort = 9091;
             protocol = "TCP";
           }];
-          selector.app = name;
+          selector.app = module.name;
         };
       };
     };
   };
 
-  config.kubernetes.moduleDefinitions.kube-state-metrics.module = {name, config, module, ...}: {
+  config.kubernetes.moduleDefinitions.kube-state-metrics.module = {config, module, ...}: {
     options = {
       image = mkOption {
         description = "Image to use for kube-state-metrics";
@@ -384,16 +400,16 @@ with lib;
 
     config = {
       kubernetes.resources.deployments.kube-state-metrics = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
           replicas = 1;
-          selector.matchLabels.app = name;
+          selector.matchLabels.app = module.name;
           template = {
-            metadata.name = name;
-            metadata.labels.app = name;
+            metadata.name = module.name;
+            metadata.labels.app = module.name;
             spec = {
-              serviceAccountName = name;
+              serviceAccountName = module.name;
               containers.kube-state-metrics = {
                 image = config.image;
                 ports = [{
@@ -443,7 +459,7 @@ with lib;
                   "--memory=100Mi"
                   "--extra-memory=2Mi"
                   "--threshold=5" */
-                  "--deployment=${name}"
+                  "--deployment=${module.name}"
                 ];
               };
               /* nodeSelector.node_label_key = "node_label_value"; */
@@ -453,8 +469,8 @@ with lib;
       };
 
       kubernetes.resources.services.kube-state-metrics = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         metadata.annotations."prometheus.io/scrape" = "true";
         spec = {
           ports = [{
@@ -462,16 +478,16 @@ with lib;
             port = 8080;
             protocol = "TCP";
           }];
-          selector.app = name;
+          selector.app = module.name;
         };
       };
 
-      kubernetes.resources.serviceAccounts.kube-state-metrics.metadata.name = name;
+      kubernetes.resources.serviceAccounts.kube-state-metrics.metadata.name = module.name;
 
       kubernetes.resources.clusterRoles.kube-state-metrics = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         rules = [{
           apiGroups = [""];
           resources = [
@@ -512,24 +528,24 @@ with lib;
 
       kubernetes.resources.clusterRoleBindings.kube-state-metrics = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
           kind = "ClusterRole";
-          name = name;
+          name = module.name;
         };
         subjects = [{
           kind = "ServiceAccount";
-          name = name;
+          name = module.name;
           namespace = module.namespace;
         }];
       };
 
       kubernetes.resources.roles.kube-state-metrics-resizer = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         rules = [{
           apiGroups = [""];
           resources = ["pods"];
@@ -545,22 +561,22 @@ with lib;
 
       kubernetes.resources.roleBindings.kube-state-metrics = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
           kind = "Role";
-          name = name;
+          name = module.name;
         };
         subjects = [{
           kind = "ServiceAccount";
-          name = name;
+          name = module.name;
         }];
       };
     };
   };
 
-  config.kubernetes.moduleDefinitions.prometheus-node-exporter.module = {name, config, ...}: {
+  config.kubernetes.moduleDefinitions.prometheus-node-exporter.module = {config, module, ...}: {
     options = {
       image = mkOption {
         description = "Prometheus node export image to use";
@@ -610,13 +626,13 @@ with lib;
 
     config = {
       kubernetes.resources.daemonSets.prometheus-node-exporter = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
-          selector.matchLabels.app = name;
+          selector.matchLabels.app = module.name;
           template = {
-            metadata.name = name;
-            metadata.labels.app = name;
+            metadata.name = module.name;
+            metadata.labels.app = module.name;
             spec = {
               containers.node-exporter = {
                 image = config.image;
@@ -665,8 +681,8 @@ with lib;
       };
 
       kubernetes.resources.services.prometheus-node-exporter = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         metadata.annotations."prometheus.io/scrape" = "true";
         spec = {
           ports = [{
@@ -675,13 +691,13 @@ with lib;
             targetPort = 9100;
             protocol = "TCP";
           }];
-          selector.app = name;
+          selector.app = module.name;
         };
       };
     };
   };
 
-  config.kubernetes.moduleDefinitions.prometheus-alertmanager.module = {name, config, ...}: let
+  config.kubernetes.moduleDefinitions.prometheus-alertmanager.module = {config, module, ...}: let
     routeOptions = {
       receiver = mkOption {
         description = "Which prometheus alertmanager receiver to use";
@@ -813,7 +829,7 @@ with lib;
             name = mkOption {
               description = "Unique name of the receiver";
               type = types.str;
-              default = name;
+              default = module.name;
             };
 
             type = mkOption {
@@ -915,17 +931,17 @@ with lib;
 
     config = {
       kubernetes.resources.statefulSets.prometheus-alertmanager = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
           replicas = config.replicas;
-          serviceName = name;
-          selector.matchLabels.app = name;
+          serviceName = module.name;
+          selector.matchLabels.app = module.name;
           template = {
-            metadata.name = name;
-            metadata.labels.app = name;
+            metadata.name = module.name;
+            metadata.labels.app = module.name;
             spec = {
-              volumes.config.configMap.name = name;
+              volumes.config.configMap.name = module.name;
 
               containers.server-reload = {
                 image = "jimmidyson/configmap-reload:v0.2.2";
@@ -984,15 +1000,21 @@ with lib;
         };
       };
 
+      kubernetes.resources.podDisruptionBudgets.prometheus-alertmanager = {
+        metadata.name = module.name;
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = module.name;
+      };
+
       kubernetes.resources.configMaps.prometheus-alertmanager = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         data."alertmanager.json" = builtins.toJSON alertmanagerConfig;
       };
 
       kubernetes.resources.services.prometheus-alertmanager = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
           ports = [{
             name = "alertmanager";
@@ -1000,7 +1022,7 @@ with lib;
             targetPort = 9093;
             protocol = "TCP";
           }];
-          selector.app = name;
+          selector.app = module.name;
         };
       };
     };
