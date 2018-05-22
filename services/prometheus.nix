@@ -185,11 +185,11 @@ with lib;
                 }];
                 resources = {
                   requests = {
-                    memory = "512Mi";
+                    memory = "2048Mi";
                     cpu = "500m";
                   };
                   limits = {
-                    memory = "512Mi";
+                    memory = "2048Mi";
                     cpu = "500m";
                   };
                 };
