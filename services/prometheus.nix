@@ -36,7 +36,7 @@ with lib;
     configFiles = (mapAttrs' (n: v:
       let
         file = "${configMapName}.${ext}";
-        configMapName = "${module.name}-${removeSuffix ext n}";
+        configMapName = "${module.name}-${removeSuffix ".${ext}" n}";
         value = (if isAttrs v then builtins.toJSON v else builtins.readFile v);
         ext = last (splitString "." n);
       in
@@ -193,16 +193,20 @@ with lib;
                     cpu = "500m";
                   };
                 };
-                volumeMounts = {
-                  export = {
-                    name = "storage";
-                    mountPath = "/data";
-                  };
-                  config = {
-                    name = "config";
-                    mountPath = "/etc/config";
-                  };
-                };
+                volumeMounts = [{
+                  name = "storage";
+                  mountPath = "/data";
+                }] ++ (mapAttrsToList (n: v: {
+                  name = v.configMapName;
+                  mountPath = "/etc/config/${n}";
+                  subPath = n;
+                  readOnly = true;
+                }) configFiles) ++ [{
+                  name = "config";
+                  mountPath = "/etc/config/prometheus.json";
+                  subPath = "prometheus.json";
+                  readOnly = true;
+                }];
                 readinessProbe = {
                   httpGet = {
                     path = "/status";
