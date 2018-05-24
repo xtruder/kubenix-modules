@@ -398,7 +398,7 @@ with lib;
       image = mkOption {
         description = "Image to use for kube-state-metrics";
         type = types.str;
-        default = "k8s.gcr.io/kube-state-metrics:v1.2.0";
+        default = "quay.io/coreos/kube-state-metrics:v1.3.1";
       };
     };
 
@@ -505,6 +505,8 @@ with lib;
             "persistentvolumes"
             "namespaces"
             "endpoints"
+            "secrets"
+            "confimaps"
           ];
           verbs = ["list" "watch"];
         } {
