@@ -658,7 +658,7 @@ with lib;
                     port = 9100;
                   };
                   initialDelaySeconds = 30;
-                  timeoutSeconds = 1;
+                  timeoutSeconds = 15;
                 };
                 volumeMounts = [{
                   name = "proc";
