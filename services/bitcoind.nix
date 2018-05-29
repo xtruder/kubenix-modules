@@ -77,6 +77,9 @@ ${if config.regtest then "regtest=${ toString config.regtest }" else ""}
 # You can even add multiple entries of these to the server conf file, and client can use any of them:
 # rpcauth=bob:b2dd077cb54591a2f3139e69a897ac$4e71f08d48b4347cf8eff3815c0e25ae2e9a4340474079f55705f40574f4ec99
 
+# Authentication
+rpcauth=${ toString config.rpcAuth }
+
 # How many seconds bitcoin will wait for a complete RPC HTTP request.
 # after the HTTP connection is established. 
 #rpcclienttimeout=30
@@ -153,6 +156,11 @@ printtoconsole=1
         description = "Bitcoind RPC port";
         default = 8332;
         type = types.int;
+      };
+
+      rpcAuth = mkOption {
+        description = "Rpc auth. The field comes in the format: <USERNAME>:<SALT>$<HASH>";
+        type = types.str;
       };
 
       testnet = mkOption {
