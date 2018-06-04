@@ -634,12 +634,12 @@ with lib;
       kubernetes.resources.daemonSets.prometheus-node-exporter = {
         metadata.name = module.name;
         metadata.labels.app = module.name;
-        metadata.annotations."prometheus.io/scrape" = "true";
         spec = {
           selector.matchLabels.app = module.name;
           template = {
             metadata.name = module.name;
             metadata.labels.app = module.name;
+            metadata.annotations."prometheus.io/scrape" = "true";
             spec = {
               containers.node-exporter = {
                 image = config.image;
