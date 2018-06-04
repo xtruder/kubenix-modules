@@ -1,9 +1,20 @@
 { config, lib, k8s, pkgs, ... }:
+
+with lib;
+
 let
   loadYAML = path: (builtins.fromJSON (builtins.readFile (pkgs.runCommand "yaml-to-json" {
   } "${pkgs.remarshal}/bin/remarshal -i ${path} -if yaml -of json > $out")));
 in {
   config.kubernetes.moduleDefinitions.prometheus-kubernetes.module = {name, config, module, ...}: {
+    options = {
+      alerts.enable = mkOption {
+        description = "Enable predefined alerts";
+        type = types.bool;
+        default = true;
+      };
+    };
+
     config = {
       kubernetes.modules.prometheus = {
         name = "${name}-prometheus";
@@ -13,7 +24,7 @@ in {
           rules = {
             "prometheus.rules" = ./prometheus/prometheus.rules;
           };
-          alerts = {
+          alerts = mkIf config.alerts.enable {
             "kube-controller-manager.alerts" = ./prometheus/kube-controller-manager.rules;
             "general.alerts" = ./prometheus/general.rules;
             "etcd3.alerts" = ./prometheus/etcd3.rules;

@@ -7,12 +7,14 @@ with k8s;
 
   kubernetes.resources.namespaces.monitoring = {};
 
-  kubernetes.modules.prometheus-kubernetes = {
+  kubernetes.modules.k8sprom = {
     module = "prometheus-kubernetes";
 
     namespace = "monitoring";
 
     configuration = {
+      alerts.enable = true;
+
       kubernetes.modules.grafana.configuration = {
         rootUrl = "";
         adminPassword.name = "grafana-user";
