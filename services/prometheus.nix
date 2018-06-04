@@ -35,8 +35,8 @@ with lib;
     };
     configFiles = (mapAttrs' (n: v:
       let
-        file = "${configMapName}.${ext}";
-        configMapName = "${module.name}-${removeSuffix ".${ext}" n}";
+        file = n;
+        configMapName = "${module.name}-${removeSuffix ".${ext}" n}-${ext}";
         value = (if isAttrs v then builtins.toJSON v else builtins.readFile v);
         ext = last (splitString "." n);
       in
