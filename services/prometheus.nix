@@ -634,6 +634,7 @@ with lib;
       kubernetes.resources.daemonSets.prometheus-node-exporter = {
         metadata.name = module.name;
         metadata.labels.app = module.name;
+        metadata.annotations."prometheus.io/scrape" = "true";
         spec = {
           selector.matchLabels.app = module.name;
           template = {
@@ -649,7 +650,7 @@ with lib;
                   "--collector.filesystem.ignored-fs-types=${config.ignoredFsTypes}"
                 ] ++ config.extraArgs;
                 ports = [{
-                  name = "node-exporter";
+                  name = "metrics";
                   containerPort = 9100;
                 }];
                 livenessProbe = {
@@ -689,7 +690,6 @@ with lib;
       kubernetes.resources.services.prometheus-node-exporter = {
         metadata.name = module.name;
         metadata.labels.app = module.name;
-        metadata.annotations."prometheus.io/scrape" = "true";
         spec = {
           ports = [{
             name = "node-exporter";
