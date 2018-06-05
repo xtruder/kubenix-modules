@@ -46,7 +46,7 @@ with lib;
 
       chain = mkOption {
         description = "Which eth chain to use";
-        type = types.enum ["classic" "homestead" "ropsten"];
+        type = types.enum ["classic" "homestead" "ropsten" "kovan"];
         default = "homestead";
       };
 
