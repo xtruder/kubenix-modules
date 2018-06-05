@@ -835,7 +835,7 @@ with lib;
             name = mkOption {
               description = "Unique name of the receiver";
               type = types.str;
-              default = module.name;
+              default = name;
             };
 
             type = mkOption {
