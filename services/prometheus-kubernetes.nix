@@ -45,7 +45,7 @@ in {
         name = "${name}-prometheus-alertmanager";
         module = "prometheus-alertmanager";
         namespace = module.namespace;
-        configuration = {
+        configuration = mkDefault {
           route.receiver = "default";
           receivers.default = {};
         };
