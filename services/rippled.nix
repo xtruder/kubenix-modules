@@ -36,7 +36,7 @@ admin=127.0.0.1
 type=rocksdb
 path=/data
 compression=1
-online_delete=48000
+online_delete=${toString config.onlineDelete}
 advisory_delete=0
 open_files=2000
 filter_bits=12
@@ -126,15 +126,30 @@ ${config.extraConfig}
         default = 1;
       };
 
+      retentionTime = mkOption {
+        description = "Rippled average retention time in days";
+        type = types.int;
+        default = 30;
+      };
+
+      onlineDelete = mkOption {
+        description = "How much ledger history is kept";
+        type = types.int;
+        # retention time * seconds in a day / 3.5s avg per block
+        default =
+          toInt (head (splitString "." (toString (config.retentionTime * 86400 / 3.5))));
+      };
+
       storage = {
         size = mkOption {
           description = "Rippled storage size";
-          default = "100G";
+          # 12G per day on average plus 10G extra
+          default = "${toString (config.retentionTime * 12 + 10)}G";
           type = types.str;
         };
 
         class = mkOption {
-          description = "Rippled storage class";
+          description = "Rippled storage class (should be ssd)";
           default = null;
           type = types.nullOr types.str;
         };
