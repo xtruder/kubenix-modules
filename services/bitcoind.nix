@@ -156,7 +156,7 @@ printtoconsole=1
 
       server = mkOption {
         description = "Server";
-        default = 0;
+        default = 1;
         type = types.int;
       };
 
