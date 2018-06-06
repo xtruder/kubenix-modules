@@ -56,6 +56,24 @@ with lib;
         default = 30303;
       };
 
+      resources = {
+        cpu = mkOption {
+          description = "CPU resource requirements";
+          type = types.str;
+          default =
+            if config.chain == "classic" || config.chain == "homestead"
+            then "4000m" else "1000m";
+        };
+
+        memory = mkOption {
+          description = "Memory resource requiements";
+          type = types.str;
+          default =
+            if config.chain == "classic" || config.chain == "homestead"
+            then "4000Mi" else "1000Mi";
+        };
+      };
+
       extraOptions = mkOption {
         description = "Extra parity options";
         default = [];
@@ -89,10 +107,10 @@ with lib;
                 ];
 
                 resources = {
-                  requests.cpu = "4000m";
-                  requests.memory = "4000Mi";
-                  limits.cpu = "4000m";
-                  limits.memory = "4000Mi";
+                  requests.cpu = config.resources.cpu;
+                  requests.memory = config.resources.memory;
+                  limits.cpu = config.resources.cpu;
+                  limits.memory = config.resources.memory;
                 };
                 volumeMounts = [{
                   name = "storage";

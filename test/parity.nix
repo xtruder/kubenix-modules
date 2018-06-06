@@ -5,5 +5,6 @@
 
   kubernetes.modules.parity = {
     module = "parity";
+    configuration.chain = "kovan";
   };
 }
