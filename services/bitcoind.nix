@@ -47,6 +47,8 @@ ${if config.regtest then "regtest=${ toString config.regtest }" else ""}
 
 # server=1 tells Bitcoin-Qt and bitcoind to accept JSON-RPC commands
 #server=0
+${if config.server then "server=${ toString config.server }" else ""}
+
 
 # Bind to given address to listen for JSON-RPC connections. Use [host]:port notation for IPv6.
 # This option can be specified multiple times (default: bind to all interfaces)
@@ -150,6 +152,12 @@ printtoconsole=1
         description = "Number of bitcoind replicas";
         type = types.int;
         default = 1;
+      };
+
+      server = mkOption {
+        description = "Server";
+        default = 0;
+        type = types.int;
       };
 
       rpcPort = mkOption {
