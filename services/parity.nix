@@ -21,12 +21,12 @@ with lib;
       storage = {
         size = mkOption {
           description = "Parity storage size";
-          default = "45G";
+          default = if config.chain == "homestead" then "200G" else "100G";
           type = types.str;
         };
 
         class = mkOption {
-          description = "Parity storage class";
+          description = "Parity storage class (should be ssd)";
           default = null;
           type = types.nullOr types.str;
         };
