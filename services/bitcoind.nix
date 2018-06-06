@@ -47,7 +47,7 @@ ${if config.regtest then "regtest=${ toString config.regtest }" else ""}
 
 # server=1 tells Bitcoin-Qt and bitcoind to accept JSON-RPC commands
 #server=0
-${if config.server==1 then "server=${ toString config.server }" else ""}
+${if config.server == 1 then "server=${ toString config.server }" else ""}
 
 
 # Bind to given address to listen for JSON-RPC connections. Use [host]:port notation for IPv6.
