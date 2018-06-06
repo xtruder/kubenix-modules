@@ -75,6 +75,9 @@ with lib;
                   mountPath = "/secrets/cloudsql";
                   readOnly = true;
                 }];
+
+                resources.requests.cpu = "1000m";
+                resources.limits.cpu = "4000m";
               };
               volumes = [{
                 name = "cloudsql-instance-credentials";
