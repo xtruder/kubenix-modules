@@ -61,6 +61,12 @@ with k8s;
         };
       };
 
+      renewToken = mkOption {
+        description = "Whether to enable token renew";
+        type = types.bool;
+        default = true;
+      };
+
       tokenRenewPeriod = mkOption {
         description = "Token renew period";
         type = types.int;
@@ -102,38 +108,41 @@ with k8s;
             mountPath = "/vault";
           };
         }];
-        containers."${config.mountContainer}" = mkIf (config.mountContainer != null) {
-          volumeMounts."${module.name}-vault-token" = {
-            name = "${module.name}-vault-token";
-            mountPath = config.mountPath;
+        containers = {
+          "${config.mountContainer}" = mkIf (config.mountContainer != null) {
+            volumeMounts."${module.name}-vault-token" = {
+              name = "${module.name}-vault-token";
+              mountPath = config.mountPath;
+            };
           };
-        };
-        containers."${module.name}-token-renewer" = {
-          image = "vault";
-          imagePullPolicy = "IfNotPresent";
-          command = ["sh" "-ec" ''
-            export VAULT_TOKEN=$(cat /vault/token)
 
-            while true; do
-              echo "renewing vault token"
-              vault token renew >/dev/null
-              sleep ${toString config.tokenRenewPeriod}
-            done
-          ''];
-          env = {
-            VAULT_CACERT.value =
-              if (config.vault.caCert != null)
-              then "/etc/certs/vault/ca.crt"
-              else "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
-            VAULT_ADDR.value = config.vault.address;
-          };
-          volumeMounts."/etc/certs/vault" = mkIf (config.vault.caCert != null) {
-            name = "${module.name}-vault-cert";
-            mountPath = "/etc/certs/vault";
-          };
-          volumeMounts."/vault" = {
-            name = "${module.name}-vault-token";
-            mountPath = "/vault";
+          "${module.name}-token-renewer" = mkIf config.renewToken {
+            image = "vault";
+            imagePullPolicy = "IfNotPresent";
+            command = ["sh" "-ec" ''
+              export VAULT_TOKEN=$(cat /vault/token)
+
+              while true; do
+                echo "renewing vault token"
+                vault token renew >/dev/null
+                sleep ${toString config.tokenRenewPeriod}
+              done
+            ''];
+            env = {
+              VAULT_CACERT.value =
+                if (config.vault.caCert != null)
+                then "/etc/certs/vault/ca.crt"
+                else "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
+              VAULT_ADDR.value = config.vault.address;
+            };
+            volumeMounts."/etc/certs/vault" = mkIf (config.vault.caCert != null) {
+              name = "${module.name}-vault-cert";
+              mountPath = "/etc/certs/vault";
+            };
+            volumeMounts."/vault" = {
+              name = "${module.name}-vault-token";
+              mountPath = "/vault";
+            };
           };
         };
         volumes."${module.name}-vault-cert" = mkIf (config.vault.caCert != null) {
