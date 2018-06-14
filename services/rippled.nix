@@ -103,7 +103,7 @@ ${config.extraConfig}
 
     large = {
       cpu = "6000m";
-      memory = "16000Mi";
+      memory = "10000Mi";
     };
 
     huge = {
