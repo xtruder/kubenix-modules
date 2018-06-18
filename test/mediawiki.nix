@@ -1,44 +1,66 @@
-{ config, ... }:
+{ config, k8s, ... }:
+
+with k8s;
 
 {
   require = import ../services/module-list.nix;
 
-  kubernetes.modules.galera = {
-    module = "galera";
+  kubernetes.modules.mediawiki-mariadb = {
+    module = "mariadb";
 
     configuration = {
-      storage.enable = true;
-      rootPassword = "root";
-      replicas = 1;
-      user = "mediawiki";
-      database = "mediawiki";
-      password = "mediawiki";
-    };
-  };
-
-  kubernetes.modules.elasticsearch = {
-    module = "elasticsearch";
-
-    configuration = {
-      name = "escluster";
-      nodeSets.nodes = {
-        roles = ["master" "client" "data"];
-        replicas = 1;
-        storage = {
-          enable = true;
-          size = "50G";
+      rootPassword.name = "mediawiki-mariadb-root-password";
+      mysql = {
+        database = "mediawiki";
+        user = {
+          name = "mediawiki-mariadb-user";
+          key = "username";
+        };
+        password = {
+          name = "mediawiki-mariadb-user";
+          key = "password";
         };
       };
     };
   };
 
+  kubernetes.resources.secrets.mediawiki-mariadb-user.data = {
+    username = toBase64 "mediawiki";
+    password = toBase64 "mediawiki";
+  };
+
+  kubernetes.resources.secrets.mediawiki-mariadb-root-password.data = {
+    password = toBase64 "mediawiki";
+  };
+
+  kubernetes.modules.mediawiki-elasticsearch = {
+    module = "elasticsearch";
+
+    configuration = {
+      name = "mediawiki-cluster";
+      image = "quay.io/pires/docker-elasticsearch-kubernetes:5.6.4";
+      nodeSets.nodes = {
+        roles = ["master" "client" "data"];
+        replicas = 1;
+        storage = {
+          enable = true;
+          size = "10G";
+        };
+      };
+    };
+  };
+
+  kubernetes.resources.secrets.mediawiki-admin.data.password = toBase64 "password";
+
   kubernetes.modules.mediawiki = {
     module = "mediawiki";
 
     configuration = {
-      adminPassword = "A5jnbPUNU<\aqZm";
-      url = "https://wiki.x-truder.net/";
-      db.host = "galera";
+      adminPassword.name = "mediawiki-admin";
+      url = "http://mediawiki.default.svc.cluster.local/";
+      db.host = "mediawiki-mariadb";
+      db.username.name = "mediawiki-mariadb-user";
+      db.password.name = "mediawiki-mariadb-user";
       customConfig = ''
         $wgEnableUploads = true;
 
@@ -48,11 +70,17 @@
         // VisualEditor
         wfLoadExtension('VisualEditor');
         $wgDefaultUserOptions['visualeditor-enable'] = 1; // Enable by default for everybody
-        $wgVisualEditorParsoidURL = "http://127.0.0.1:8000";
+        $wgVirtualRestConfig['modules']['parsoid'] = array(
+          'url' => 'http://127.0.0.1:8000',
+          'domain' => 'localhost',
+          'prefix' => 'localhost'
+        );
         $wgNetworkAuthUsers[] = array(
           'iprange' => array('127.0.0.1/32'),
           'user' => 'parsoid'
         );
+        $wgVirtualRestConfig['modules']['parsoid']['forwardCookies'] = true;
+        $wgSessionsInObjectCache = true;
 
         // Wikidata
         $wgEnableWikibaseRepo = true;
@@ -99,17 +127,17 @@
         // Elasticsearch
         wfLoadExtension('Elastica');
         require_once "$IP/extensions/CirrusSearch/CirrusSearch.php";
-        $wgCirrusSearchServers = array( 'elasticsearch' );
+        $wgCirrusSearchServers = array( 'mediawiki-elasticsearch' );
         $wgSearchType = 'CirrusSearch';
         $wgCirrusSearchUseCompletionSuggester = 'yes';
 
         // Semantic media wiki
         /*enableSemantics('wiki.x-truder.net');
-				$smwgDefaultStore = 'SMWSparqlStore';
-				$smwgSparqlDatabaseConnector = 'blazegraph';
-				$smwgSparqlQueryEndpoint = 'http://wikibase-query-service:8000/bigdata/namespace/kb/sparql';
-				$smwgSparqlUpdateEndpoint = 'http://wikibase-query-service:8000/bigdata/namespace/kb/sparql';
-				$smwgSparqlDataEndpoint = ''';*/
+        $smwgDefaultStore = 'SMWSparqlStore';
+        $smwgSparqlDatabaseConnector = 'blazegraph';
+        $smwgSparqlQueryEndpoint = 'http://wikibase-query-service:8000/bigdata/namespace/kb/sparql';
+        $smwgSparqlUpdateEndpoint = 'http://wikibase-query-service:8000/bigdata/namespace/kb/sparql';
+        $smwgSparqlDataEndpoint = ''';*/
 
         // Disable reading by anonymous users
         $wgGroupPermissions['*']['read'] = false;

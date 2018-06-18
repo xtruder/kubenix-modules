@@ -4,7 +4,25 @@ with k8s;
 with lib;
 
 {
-  config.kubernetes.moduleDefinitions.mediawiki.module = {name, config, ...}: {
+  config.kubernetes.moduleDefinitions.mediawiki.module = {name, config, ...}: let
+    parsoidConfig = ''
+      worker_heartbeat_timeout: 300000
+
+      logging:
+        level: info
+
+      services:
+        - module: lib/index.js
+          entrypoint: apiServiceWorker
+          conf:
+            # Configure Parsoid to point to your MediaWiki instances.
+            mwApis:
+            - # This is the only required parameter,
+              # the URL of you MediaWiki API endpoint.
+              uri: 'http://localhost/api.php'
+              domain: 'localhost'  # optional
+    '';
+  in {
     options = {
       image = mkOption {
         description = "Elasticsearch image to use";
@@ -15,7 +33,7 @@ with lib;
       parsoidImage = mkOption {
         description = "Image to use for parsoid";
         type = types.str;
-        default = "offlinehacker/parsoid";
+        default = "benhutchins/parsoid";
       };
 
       url = mkOption {
@@ -35,8 +53,9 @@ with lib;
         default = "admin";
       };
 
-      adminPassword = mkValueOrSecretOption {
+      adminPassword = mkSecretOption {
         description = "Mediawiki admin password";
+        default.key = "password";
       };
 
       customConfig = mkOption {
@@ -83,14 +102,14 @@ with lib;
           default = 3306;
         };
 
-        user = mkValueOrSecretOption {
+        username = mkSecretOption {
           description = "Database user";
-          default = "mediawiki";
+          default.key = "username";
         };
 
-        pass = mkValueOrSecretOption {
+        password = mkSecretOption {
           description = "Database password";
-          default = "mediawiki";
+          default.key = "password";
         };
       };
     };
@@ -103,6 +122,7 @@ with lib;
         };
         spec = {
           replicas = 1;
+          selector.matchLabels.app = name;
           template = {
             metadata = {
               labels.app = name;
@@ -110,6 +130,11 @@ with lib;
             spec = {
               containers.parsoid = {
                 image = config.parsoidImage;
+                volumeMounts = [{
+                  name = "parsoid";
+                  mountPath = "/data";
+                }];
+
                 env = {
                   MW_URL.value = http://127.0.0.1;
                   PORT.value = "8000";
@@ -131,18 +156,18 @@ with lib;
                   MEDIAWIKI_SITE_SERVER.value = config.url;
                   MEDIAWIKI_SITE_NAME.value = config.siteName;
                   MEDIAWIKI_ADMIN_USER.value = config.adminUser;
-                  MEDIAWIKI_ADMIN_PASS = config.adminPassword;
+                  MEDIAWIKI_ADMIN_PASS = secretToEnv config.adminPassword;
                   MEDIAWIKI_DB_TYPE.value = config.db.type;
                   MEDIAWIKI_DB_HOST.value = config.db.host;
                   MEDIAWIKI_DB_PORT.value = toString config.db.port;
-                  MEDIAWIKI_DB_USER = config.db.user;
-                  MEDIAWIKI_DB_PASSWORD = config.db.pass;
+                  MEDIAWIKI_DB_USER = secretToEnv config.db.username;
+                  MEDIAWIKI_DB_PASSWORD = secretToEnv config.db.password;
                   MEDIAWIKI_DB_NAME.value = config.db.name;
                   MEDIAWIKI_UPDATE.value = "true";
                 };
 
                 lifecycle.postStart.exec.command =
-                  ["/bin/cp" "/config/settings.php" "/data/CustomSettings.php"];
+                ["/bin/cp" "/config/settings.php" "/data/CustomSettings.php"];
 
                 ports = [{
                   containerPort = 80;
@@ -155,6 +180,7 @@ with lib;
               };
 
               volumes.config.configMap.name = name;
+              volumes.parsoid.configMap.name = "${name}-parsoid";
               volumes.data.persistentVolumeClaim.claimName = name;
             };
           };
@@ -183,9 +209,10 @@ with lib;
       };
 
       kubernetes.resources.configMaps.mediawiki.data."settings.php" =
-        ''<?php
+      ''<?php
         ${config.customConfig}
         ?>'';
+        kubernetes.resources.configMaps.mediawiki-parsoid.data."config.yaml" = parsoidConfig;
+      };
     };
-  };
-}
+  }

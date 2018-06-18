@@ -37,4 +37,5 @@
   ./mongodb.nix
   ./pritunl.nix
   ./cloud-sql-proxy.nix
+  ./mediawiki.nix
 ]
