@@ -191,5 +191,9 @@ in {
     cloud-sql-proxy = kubenix.buildResources {
       configuration.imports = [./test/cloud-sql-proxy.nix globalConfig];
     };
+
+    mariadb = kubenix.buildResources {
+      configuration.imports = [./test/mariadb.nix globalConfig];
+    };
   };
 }
