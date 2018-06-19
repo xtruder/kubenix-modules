@@ -195,5 +195,9 @@ in {
     mariadb = kubenix.buildResources {
       configuration.imports = [./test/mariadb.nix globalConfig];
     };
+
+    k8s-snapshot = kubenix.buildResources {
+      configuration.imports = [./test/k8s-snapshot.nix globalConfig];
+    };
   };
 }
