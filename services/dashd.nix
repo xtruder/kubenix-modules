@@ -147,7 +147,7 @@ in {
       image = mkOption {
         description = "Name of the dashd image to use";
         type = types.str;
-        default = "dashpay/docker-dashd";
+        default = "dashpay/dashd";
       };
 
       replicas = mkOption {
