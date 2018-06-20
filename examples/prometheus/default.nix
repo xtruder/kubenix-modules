@@ -3,7 +3,7 @@
 with k8s;
 
 {
-  require = import ../../services/module-list.nix;
+  require = import ../../modules/module-list.nix;
 
   kubernetes.modules.prometheus = {
     module = "prometheus";
@@ -71,7 +71,7 @@ with k8s;
       adminPassword.name = "grafana-user";
       db.type = "sqlite3";
       resources = {
-        "deployment-dashboard.json" = ../../services/prometheus/deployment-dashboard.json;
+        "deployment-dashboard.json" = ../../modules/prometheus/deployment-dashboard.json;
         "hot-dashboard.json" = ./hot-dashboard.json;
         "prom-datasource.json" = {
           name = "prometheus";

@@ -5,7 +5,7 @@ with k8s;
 let
   namespace = "external-dns-test";
 in {
-  require = import ../../services/module-list.nix;
+  require = import ../../modules/module-list.nix;
 
   kubernetes.resources.namespaces.${namespace} = {};
 

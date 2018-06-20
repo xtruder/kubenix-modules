@@ -1,7 +1,7 @@
 { config, k8s, ... }:
 
 {
-  require = import ../../services/module-list.nix;
+  require = import ../../modules/module-list.nix;
 
   # create certificate
   kubernetes.modules.ca-deployer = {
