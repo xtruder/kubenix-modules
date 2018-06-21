@@ -39,4 +39,5 @@
   ./cloud-sql-proxy.nix
   ./mediawiki.nix
   ./k8s-snapshot.nix
+  ./goldfish.nix
 ]
