@@ -199,5 +199,9 @@ in {
     k8s-snapshot = kubenix.buildResources {
       configuration.imports = [./test/k8s-snapshot.nix globalConfig];
     };
+
+    goldfish = kubenix.buildResources {
+      configuration.imports = [./test/goldfish.nix globalConfig];
+    };
   };
 }
