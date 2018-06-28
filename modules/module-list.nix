@@ -41,4 +41,5 @@
   ./mediawiki.nix
   ./k8s-snapshot.nix
   ./goldfish.nix
+  ./zookeeper.nix
 ]
