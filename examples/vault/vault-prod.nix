@@ -4,7 +4,7 @@ let
   vault = "https://vault:8300";
   namespace = "vault";
 in {
-  require = import ../../services/module-list.nix;
+  require = import ../../modules/module-list.nix;
 
   kubernetes.resources.namespaces."${namespace}" = {};
 

@@ -1,7 +1,7 @@
 { config, ... }:
 
 {
-  require = import ../../services/module-list.nix;
+  require = import ../../modules/module-list.nix;
 
   kubernetes.modules.kubelog = {
     module = "kubelog";
