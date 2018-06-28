@@ -39,6 +39,7 @@ in {
     contents = [pkgs.bashInteractive pkgs.coreutils];
   };
 
+  zookeeper = callPackage ./zookeeper.nix { };
 });
 
 in fix' (extends overrides images)

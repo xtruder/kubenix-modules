@@ -49,4 +49,5 @@ in {
   cloud-sql-proxy = buildTest ./cloud-sql-proxy.nix {};
   mariadb = buildTest ./mariadb.nix {};
   k8s-snapshot = buildTest ./k8s-snapshot.nix {};
+  zookeeper = buildTest ./zookeeper.nix {};
 }
