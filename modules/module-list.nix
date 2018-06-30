@@ -42,4 +42,5 @@
   ./k8s-snapshot.nix
   ./goldfish.nix
   ./zookeeper.nix
+  ./kafka.nix
 ]
