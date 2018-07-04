@@ -50,4 +50,5 @@ in {
   mariadb = buildTest ./mariadb.nix {};
   k8s-snapshot = buildTest ./k8s-snapshot.nix {};
   zookeeper = buildTest ./zookeeper.nix {};
+  kafka = buildTest ./kafka.nix {};
 }
