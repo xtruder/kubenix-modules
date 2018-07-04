@@ -20,11 +20,13 @@ let
     } // (filterAttrs (n: _: n != "package") args));
   in img;
 
-  pushImages = images: pkgs.writeScript "push-docker-images" ''
+  allImages = mapAttrsToList (_: v: v) (filterAttrs (_: img: isDerivation img) self);
+
+  pushImages = { images ? allImages }: pkgs.writeScript "push-docker-images" ''
     #!/bin/sh
 
-    ${concatStrings (mapAttrsToList (name: image: ''
-    ${pkgs.skopeo}/bin/skopeo copy docker-archive:${image} $1/${image.imageName}:${image.imageTag}
+    ${concatStrings (map (image: ''
+    ${pkgs.skopeo}/bin/skopeo copy docker-archive:${image} $1/${image.image.fullName}
     '') images)}
   '';
 
