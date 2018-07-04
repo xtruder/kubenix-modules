@@ -83,6 +83,7 @@ with k8s;
                   RABBITMQ_NODENAME.value = "rabbit@$(MY_POD_IP)";
                   AUTOCLUSTER_TYPE.value = "k8s";
                   AUTOCLUSTER_DELAY.value = "10";
+                  AUTOCLUSTER_FAILURE.value = "stop"; # do not start if not forming cluster
                   K8S_ADDRESS_TYPE.value = "ip";
                   AUTOCLUSTER_CLEANUP.value = "true";
                   CLEANUP_WARN_ONLY.value = "false";
