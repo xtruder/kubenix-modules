@@ -44,6 +44,8 @@ in {
   zookeeper = callPackage ./zookeeper.nix {};
 
   kafka = callPackage ./kafka.nix {};
+
+  ksql = callPackage ./ksql.nix {};
 });
 
 in fix' (extends overrides images)

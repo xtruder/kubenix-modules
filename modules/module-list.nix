@@ -43,4 +43,5 @@
   ./goldfish.nix
   ./zookeeper.nix
   ./kafka.nix
+  ./ksql.nix
 ]
