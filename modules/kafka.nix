@@ -89,7 +89,7 @@ with k8s;
         "controlled.shutdown.max.retries" = "3";
         "controlled.shutdown.retry.backoff.ms" = "5000";
         "controller.socket.timeout.ms" = "30000";
-        "default.replication.factor" = "1";
+        "default.replication.factor" = "3";
         "fetch.purgatory.purge.interval.requests" = "1000";
         "group.max.session.timeout.ms" = "300000";
         "group.min.session.timeout.ms" = "6000";
