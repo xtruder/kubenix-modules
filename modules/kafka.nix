@@ -117,7 +117,7 @@ with k8s;
         "replica.fetch.max.bytes" = "1048576";
         "replica.fetch.response.max.bytes" = "10485760";
         "reserved.broker.max.id" = "1000"; 
-        "log.dir" = "/data";
+        "log.dirs" = "/data/logs";
         "broker.id" = "\${HOSTNAME##*-}";
       };
 
