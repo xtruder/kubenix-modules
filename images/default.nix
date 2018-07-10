@@ -26,6 +26,8 @@ let
     #!/bin/sh
 
     ${concatStrings (map (image: ''
+    echo "Pushing ${image.image.fullName}"
+
     ${pkgs.skopeo}/bin/skopeo copy docker-archive:${image} $1/${image.image.fullName}
     '') images)}
   '';
