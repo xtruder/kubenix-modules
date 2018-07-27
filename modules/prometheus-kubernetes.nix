@@ -39,7 +39,10 @@ in {
             "kube-apiserver.alerts" = ./prometheus/kube-apiserver.rules;
             "kubernetes.alerts" = ./prometheus/kubernetes.rules;
           };
-          extraScrapeConfigs = loadYAML ./prometheus/scrapeconfigs.yaml;
+          extraScrapeConfigs = loadYAML
+            (builtins.toFile "scrapeconfigs.yaml"  (
+              builtins.replaceStrings ["prometheus-blackbox-exporter"] ["${name}-prometheus-blackbox-exporter"]
+                (builtins.readFile ./prometheus/scrapeconfigs.yaml)));
         };
       };
 
@@ -97,6 +100,12 @@ in {
       kubernetes.modules.kube-state-metrics = {
         name = "${name}-kube-state-metrics";
         module = "kube-state-metrics";
+        namespace = module.namespace;
+      };
+
+      kubernetes.modules.prometheus-blackbox-exporter = {
+        name = "${name}-prometheus-blackbox-exporter";
+        module = "prometheus-blackbox-exporter";
         namespace = module.namespace;
       };
     };
