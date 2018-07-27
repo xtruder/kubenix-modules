@@ -26,6 +26,8 @@ let
     #!/bin/sh
 
     ${concatStrings (map (image: ''
+    echo "Pushing ${image.image.fullName}"
+
     ${pkgs.skopeo}/bin/skopeo copy docker-archive:${image} $1/${image.image.fullName}
     '') images)}
   '';
@@ -44,6 +46,8 @@ in {
   zookeeper = callPackage ./zookeeper.nix {};
 
   kafka = callPackage ./kafka.nix {};
+
+  ksql = callPackage ./ksql.nix {};
 });
 
 in fix' (extends overrides images)
