@@ -98,7 +98,7 @@ ${config.extraConfig}
 
     medium = {
       cpu = "4000m";
-      memory = "8000Mi";
+      memory = "10000Mi";
     };
 
     large = {
