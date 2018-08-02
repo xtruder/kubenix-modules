@@ -52,4 +52,5 @@ in {
   zookeeper = buildTest ./zookeeper.nix {};
   kafka = buildTest ./kafka.nix {};
   ksql = buildTest ./ksql.nix {};
+  argo-ingress-controller = buildTest ./argo-ingress-controller.nix {};
 }
