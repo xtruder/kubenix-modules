@@ -91,24 +91,24 @@ ${config.extraConfig}
   '';
 
   resources = {
-    small = {
+    tiny = {
       cpu = "1000m";
-      memory = "2000Mi";
+      memory = "4000Mi";
+    };
+
+    low = {
+      cpu = "4000m";
+      memory = "8000Mi";
     };
 
     medium = {
-      cpu = "4000m";
-      memory = "10000Mi";
-    };
-
-    large = {
       cpu = "6000m";
-      memory = "10000Mi";
+      memory = "16000Mi";
     };
 
     huge = {
       cpu = "7000m";
-      memory = "24000Mi";
+      memory = "32000Mi";
     };
   };
 
