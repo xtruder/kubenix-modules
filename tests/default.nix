@@ -53,4 +53,5 @@ in {
   kafka = buildTest ./kafka.nix {};
   ksql = buildTest ./ksql.nix {};
   argo-ingress-controller = buildTest ./argo-ingress-controller.nix {};
+  ambassador = buildTest ./ambassador.nix {};
 }
