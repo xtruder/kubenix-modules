@@ -33,7 +33,7 @@ admin=127.0.0.1
 /data
 
 [node_db]
-type=rocksdb
+type=${config.db.type}
 path=/data
 compression=1
 online_delete=${toString config.onlineDelete}
@@ -141,6 +141,14 @@ ${config.extraConfig}
         default = builtins.fetchurl {
           url = "https://ripple.com/validators.txt";
           sha256 = "0lsnh7pclpxl627qlvjfqjac97z3glwjv9h08lqcr11bxb6rafdk";
+        };
+      };
+
+      db = {
+        type = mkOption {
+          description = "Type of the database used";
+          type = types.enum ["NuDB" "RocksDB"];
+          default = if config.validationSeed != null then "RocksDB" else "NuDB";
         };
       };
 
