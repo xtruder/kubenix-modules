@@ -217,6 +217,7 @@ ${config.extraConfig}
             spec = {
               containers.rippled = {
                 image = config.image;
+                imagePullPolicy = "Always";
                 command = ["/opt/ripple/bin/rippled" "--conf" "/etc/rippled/rippled.conf"];
 
                 resources.requests = resources.${config.nodeSize};
