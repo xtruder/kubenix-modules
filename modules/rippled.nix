@@ -59,7 +59,7 @@ ${config.validationSeed}
 ${config.nodeSize}
 
 [ledger_history]
-12400
+${toString config.ledgerHistory}
 
 [fetch_depth]
 full
@@ -127,6 +127,12 @@ ${config.extraConfig}
         # retention time * seconds in a day / 3.5s avg per block
         default =
           toInt (head (splitString "." (toString (config.retentionTime * 86400 / 3.5))));
+      };
+
+      ledgerHistory = mkOption {
+        description = "How much history to fetch";
+        type = types.int;
+        default = config.onlineDelete;
       };
 
       ips = mkOption {
