@@ -161,8 +161,8 @@ ${config.extraConfig}
       storage = {
         size = mkOption {
           description = "Rippled storage size";
-          # 12G per day on average plus 10G extra
-          default = "${toString (config.retentionTime * 12 + 10)}G";
+          # 12G(for NuDB) or 8G (for rocksdb) per day on average plus 10G extra
+          default = "${toString (config.retentionTime * (if config.db.type == "NuDB" then 12 else 8) + 10)}G";
           type = types.str;
         };
 
