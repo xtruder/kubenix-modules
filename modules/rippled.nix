@@ -74,7 +74,7 @@ time.nist.gov
 pool.ntp.org
 
 [rpc_startup]
-{ "command": "log_level", "severity": "error" }
+{ "command": "log_level", "severity": "${config.logLevel}"  }
 
 ${config.extraConfig}
   '';
@@ -189,6 +189,12 @@ ${config.extraConfig}
         description = "Rippled peer port";
         default = 32235;
         type = types.int;
+      };
+
+      logLevel = mkOption {
+        description = "Rippled log level";
+        type = types.enum ["fatal" "error" "warn" "info" "debug" "trace"];
+        default = "info";
       };
 
       extraConfig = mkOption {
