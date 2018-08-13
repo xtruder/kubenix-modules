@@ -45,21 +45,10 @@ file_size_mb=8
 file_size_mult=2
 
 [ips]
-54.84.21.230 51235
-54.86.175.122 51235
-54.186.248.91 51235
-54.186.73.52 51235
-184.173.45.38 51235
-198.11.206.26 51235
-169.55.164.29 51235
-174.37.225.41 51235
+${concatStringsSep "\n" config.ips}
 
-[validators]
-nHB1FqfBpNg7UTpiqEUkKcAiWqC2PFuoGY7FPWtCcXAxSkhpqDkm	RL1
-nHUpwrafS45zmi6eT72XS5ijpkW5JwfL5mLdPhEibrqUvtRcMAjU	RL2
-nHUBGitjsiaiMJBWKYsJBHU2shmYt9m29hRqoh8AS5bSAjXoHmdd	RL3
-nHUXh1ELizQ5QLLqtNaVEbbbfMdq3wMkh14aJo5xi83xzzaatWWP	RL4
-nHUgoJvpqXZMZwxh8ZoFseFJEVF8ryup9r2mFYchX7ftMdNn3jLT	RL5
+[validators_file]
+validators.txt
 
 ${optionalString (config.validationSeed != null) ''
 [validation_seed]
@@ -138,6 +127,21 @@ ${config.extraConfig}
         # retention time * seconds in a day / 3.5s avg per block
         default =
           toInt (head (splitString "." (toString (config.retentionTime * 86400 / 3.5))));
+      };
+
+      ips = mkOption {
+        description = "List of ips where to find other servers speaking ripple protocol";
+        type = types.listOf types.str;
+        default = ["r.ripple.com 51235"];
+      };
+
+      validatorFile = mkOption {
+        description = "Rippled validator list file";
+        type = types.package;
+        default = builtins.fetchurl {
+          url = "https://ripple.com/validators.txt";
+          sha256 = "0lsnh7pclpxl627qlvjfqjac97z3glwjv9h08lqcr11bxb6rafdk";
+        };
       };
 
       storage = {
@@ -236,6 +240,7 @@ ${config.extraConfig}
       kubernetes.resources.configMaps.rippled = {
         metadata.name = "${name}-config";
         data."rippled.conf" = rippledConfig;
+        data."validators.txt" = builtins.readFile config.validatorFile;
       };
 
       kubernetes.resources.services.rippled = {
