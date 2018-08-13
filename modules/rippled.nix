@@ -118,7 +118,7 @@ ${config.extraConfig}
       retentionTime = mkOption {
         description = "Rippled average retention time in days";
         type = types.int;
-        default = 30;
+        default = 1;
       };
 
       onlineDelete = mkOption {
