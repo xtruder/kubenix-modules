@@ -33,7 +33,7 @@ admin=127.0.0.1
 /data
 
 [node_db]
-type=rocksdb
+type=${config.db.type}
 path=/data
 compression=1
 online_delete=${toString config.onlineDelete}
@@ -45,21 +45,10 @@ file_size_mb=8
 file_size_mult=2
 
 [ips]
-54.84.21.230 51235
-54.86.175.122 51235
-54.186.248.91 51235
-54.186.73.52 51235
-184.173.45.38 51235
-198.11.206.26 51235
-169.55.164.29 51235
-174.37.225.41 51235
+${concatStringsSep "\n" config.ips}
 
-[validators]
-nHB1FqfBpNg7UTpiqEUkKcAiWqC2PFuoGY7FPWtCcXAxSkhpqDkm	RL1
-nHUpwrafS45zmi6eT72XS5ijpkW5JwfL5mLdPhEibrqUvtRcMAjU	RL2
-nHUBGitjsiaiMJBWKYsJBHU2shmYt9m29hRqoh8AS5bSAjXoHmdd	RL3
-nHUXh1ELizQ5QLLqtNaVEbbbfMdq3wMkh14aJo5xi83xzzaatWWP	RL4
-nHUgoJvpqXZMZwxh8ZoFseFJEVF8ryup9r2mFYchX7ftMdNn3jLT	RL5
+[validators_file]
+validators.txt
 
 ${optionalString (config.validationSeed != null) ''
 [validation_seed]
@@ -70,7 +59,7 @@ ${config.validationSeed}
 ${config.nodeSize}
 
 [ledger_history]
-12400
+${toString config.ledgerHistory}
 
 [fetch_depth]
 full
@@ -85,7 +74,7 @@ time.nist.gov
 pool.ntp.org
 
 [rpc_startup]
-{ "command": "log_level", "severity": "error" }
+{ "command": "log_level", "severity": "${config.logLevel}"  }
 
 ${config.extraConfig}
   '';
@@ -129,7 +118,7 @@ ${config.extraConfig}
       retentionTime = mkOption {
         description = "Rippled average retention time in days";
         type = types.int;
-        default = 30;
+        default = 1;
       };
 
       onlineDelete = mkOption {
@@ -140,11 +129,40 @@ ${config.extraConfig}
           toInt (head (splitString "." (toString (config.retentionTime * 86400 / 3.5))));
       };
 
+      ledgerHistory = mkOption {
+        description = "How much history to fetch";
+        type = types.int;
+        default = config.onlineDelete;
+      };
+
+      ips = mkOption {
+        description = "List of ips where to find other servers speaking ripple protocol";
+        type = types.listOf types.str;
+        default = ["r.ripple.com 51235"];
+      };
+
+      validatorFile = mkOption {
+        description = "Rippled validator list file";
+        type = types.package;
+        default = builtins.fetchurl {
+          url = "https://ripple.com/validators.txt";
+          sha256 = "0lsnh7pclpxl627qlvjfqjac97z3glwjv9h08lqcr11bxb6rafdk";
+        };
+      };
+
+      db = {
+        type = mkOption {
+          description = "Type of the database used";
+          type = types.enum ["NuDB" "RocksDB"];
+          default = if config.validationSeed != null then "RocksDB" else "NuDB";
+        };
+      };
+
       storage = {
         size = mkOption {
           description = "Rippled storage size";
-          # 12G per day on average plus 10G extra
-          default = "${toString (config.retentionTime * 12 + 10)}G";
+          # 12G(for NuDB) or 8G (for rocksdb) per day on average plus 10G extra
+          default = "${toString (config.retentionTime * (if config.db.type == "NuDB" then 12 else 8) + 10)}G";
           type = types.str;
         };
 
@@ -157,8 +175,8 @@ ${config.extraConfig}
 
       nodeSize = mkOption {
         description = "Rippled node size";
-        default = "small";
-        type = types.enum ["small" "medium" "large" "huge"];
+        default = "low";
+        type = types.enum ["tiny" "low" "medium" "huge"];
       };
 
       validationSeed = mkOption {
@@ -171,6 +189,12 @@ ${config.extraConfig}
         description = "Rippled peer port";
         default = 32235;
         type = types.int;
+      };
+
+      logLevel = mkOption {
+        description = "Rippled log level";
+        type = types.enum ["fatal" "error" "warn" "info" "debug" "trace"];
+        default = "info";
       };
 
       extraConfig = mkOption {
@@ -193,6 +217,7 @@ ${config.extraConfig}
             spec = {
               containers.rippled = {
                 image = config.image;
+                imagePullPolicy = "Always";
                 command = ["/opt/ripple/bin/rippled" "--conf" "/etc/rippled/rippled.conf"];
 
                 resources.requests = resources.${config.nodeSize};
@@ -236,6 +261,7 @@ ${config.extraConfig}
       kubernetes.resources.configMaps.rippled = {
         metadata.name = "${name}-config";
         data."rippled.conf" = rippledConfig;
+        data."validators.txt" = builtins.readFile config.validatorFile;
       };
 
       kubernetes.resources.services.rippled = {
