@@ -5,6 +5,9 @@
 
   kubernetes.modules.rippled = {
     module = "rippled";
-    configuration.storage.class = "ssd";
+    configuration = {
+      storage.class = "ssd";
+      nodeSize = "tiny";
+    };
   };
 }
