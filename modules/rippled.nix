@@ -175,8 +175,8 @@ ${config.extraConfig}
 
       nodeSize = mkOption {
         description = "Rippled node size";
-        default = "small";
-        type = types.enum ["small" "medium" "large" "huge"];
+        default = "low";
+        type = types.enum ["tiny" "low" "medium" "huge"];
       };
 
       validationSeed = mkOption {
