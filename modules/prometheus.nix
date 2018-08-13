@@ -1,4 +1,4 @@
-{ config, lib, k8s, ... }:
+{ config, lib, k8s, pkgs, ... }:
 
 with k8s;
 with lib;
@@ -33,17 +33,16 @@ with lib;
         }];
       };
     };
-    configFiles = (mapAttrs' (n: v:
-      let
-        file = n;
-        configMapName = "${module.name}-${removeSuffix ".${ext}" n}-${ext}";
-        value = (if isAttrs v then builtins.toJSON v else builtins.readFile v);
-        ext = last (splitString "." n);
-      in
-        nameValuePair file {
-          inherit configMapName value;
-        }
-    ) (config.rules // config.alerts));
+
+    validateRulesAndAlerts = files: mapAttrs (n: f: let
+      file = if isString f then (builtins.toFile "${n}" f) else f;
+    in builtins.readFile (pkgs.runCommand "prometheus-check-${n}" {
+      buildInputs = [pkgs.prometheus_2];
+    } ''
+      cp ${file} ${n}
+      promtool check rules ${n}
+      cp ${file} $out
+    '')) files;
   in {
     options = {
       image = mkOption {
@@ -80,13 +79,13 @@ with lib;
 
       rules = mkOption {
         description = "Attribute set of prometheus recording rules to deploy";
-        type = types.attrs;
+        type = types.attrsOf (types.either types.path types.str);
         default = {};
       };
 
       alerts = mkOption {
         description = "Attribute set of alert rules to deploy";
-        type = types.attrs;
+        type = types.attrsOf (types.either types.path types.str);
         default = {};
       };
 
@@ -145,11 +144,7 @@ with lib;
             metadata.labels.app = module.name;
             spec = {
               serviceAccountName = module.name;
-              volumes = (mapAttrs' (n: v: nameValuePair v.configMapName {
-                configMap.name = v.configMapName;
-              }) configFiles) // {
-                config.configMap.name = module.name;
-              };
+              volumes.config.configMap.name = module.name;
 
               containers.server-reload = {
                 image = "jimmidyson/configmap-reload:v0.2.2";
@@ -157,15 +152,9 @@ with lib;
                   "--volume-dir=/etc/config"
                   "--webhook-url=http://localhost:9090/-/reload"
                 ];
-                volumeMounts = (mapAttrsToList (n: v: {
-                  name = v.configMapName;
-                  mountPath = "/etc/config/${n}";
-                  subPath = n;
-                  readOnly = true;
-                }) configFiles) ++ [{
+                volumeMounts = [{
                   name = "config";
-                  mountPath = "/etc/config/prometheus.json";
-                  subPath = "prometheus.json";
+                  mountPath = "/etc/config";
                   readOnly = true;
                 }];
               };
@@ -196,15 +185,9 @@ with lib;
                 volumeMounts = [{
                   name = "storage";
                   mountPath = "/data";
-                }] ++ (mapAttrsToList (n: v: {
-                  name = v.configMapName;
-                  mountPath = "/etc/config/${n}";
-                  subPath = n;
-                  readOnly = true;
-                }) configFiles) ++ [{
+                } {
                   name = "config";
-                  mountPath = "/etc/config/prometheus.json";
-                  subPath = "prometheus.json";
+                  mountPath = "/etc/config";
                   readOnly = true;
                 }];
                 readinessProbe = {
@@ -258,19 +241,16 @@ with lib;
         };
       };
 
-      kubernetes.resources.configMaps = (mapAttrs' (n: v:
-        nameValuePair v.configMapName {
-          metadata.name = v.configMapName;
-          metadata.labels.app = module.name;
-          data."${n}" = v.value;
-        }
-      ) configFiles) // {
+      kubernetes.resources.configMaps =  {
         prometheus = {
           metadata.name = module.name;
           metadata.labels.app = module.name;
           data = {
             "prometheus.json" = builtins.toJSON prometheusConfig;
-          };
+          } // (mapAttrs (n: f:
+            if isString f then f
+            else builtins.readFile f
+          ) (validateRulesAndAlerts (config.rules // config.alerts)));
         };
       };
 
