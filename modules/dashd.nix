@@ -214,13 +214,13 @@ in {
               initContainers = [{
                 name = "copy-dashd-config";
                 image = "busybox";
-                command = ["sh" "-c" "cp /config/dash.conf /dash/.dash/dash.conf"];
+                command = ["sh" "-c" "cp /config/dash.conf /dash/.dashcore/dash.conf"];
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/config";
                 } {
                   name = "data";
-                  mountPath = "/dash/.dash/";
+                  mountPath = "/dash/.dashcore/";
                 }];
               }];
               containers.dashd = {
@@ -228,7 +228,7 @@ in {
 
                 volumeMounts = [{
                   name = "data";
-                  mountPath = "/dash/.dash/";
+                  mountPath = "/dash/.dashcore/";
                 }];
 
                 resources.requests = {
