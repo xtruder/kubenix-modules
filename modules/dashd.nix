@@ -147,7 +147,7 @@ in {
       image = mkOption {
         description = "Name of the dashd image to use";
         type = types.str;
-        default = "dashpay/dashd";
+        default = "helidium/dashd";
       };
 
       replicas = mkOption {
@@ -214,7 +214,7 @@ in {
               initContainers = [{
                 name = "copy-dashd-config";
                 image = "busybox";
-                command = ["sh" "-c" "mkdir /dash/.dashcore/testnet3 && cp /config/dash.conf /dash/.dashcore/dash.conf"];
+                command = ["sh" "-c" "cp /config/dash.conf /dash/.dashcore/dash.conf"];
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/config";
