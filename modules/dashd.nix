@@ -214,7 +214,7 @@ in {
               initContainers = [{
                 name = "copy-dashd-config";
                 image = "busybox";
-                command = ["sh" "-c" "cp /config/dash.conf /dash/.dashcore/dash.conf"];
+                command = ["sh" "-c" "mkdir /dash/.dashcore/testnet3 && cp /config/dash.conf /dash/.dashcore/dash.conf"];
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/config";
