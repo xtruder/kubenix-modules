@@ -45,4 +45,5 @@
   ./kafka.nix
   ./ksql.nix
   ./argo-ingress-controller.nix
+  ./ambassador.nix
 ]
