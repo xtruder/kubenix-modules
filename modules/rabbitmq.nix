@@ -117,6 +117,10 @@ with k8s;
                   protocol = "TCP";
                   containerPort = 15672;
                 } {
+                  name = "clustering";
+                  protocol = "TCP";
+                  containerPort = 25672;
+                } {
                   name = "amqp";
                   protocol = "TCP";
                   containerPort = 5672;
