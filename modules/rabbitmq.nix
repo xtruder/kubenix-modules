@@ -9,7 +9,7 @@ with k8s;
       image = mkOption {
         description = "Docker image to use";
         type = types.str;
-        default = "xtruder/rabbitmq-autocluster:3.6.8-management";
+        default = "rabbitmq:3.7";
       };
 
       replicas = mkOption {
