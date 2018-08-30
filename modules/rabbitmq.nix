@@ -4,12 +4,12 @@ with lib;
 with k8s;
 
 {
-  kubernetes.moduleDefinitions.rabbitmq.module = {name, config, ...}: {
+  kubernetes.moduleDefinitions.rabbitmq.module = {module, config, ...}: {
     options = {
       image = mkOption {
         description = "Docker image to use";
         type = types.str;
-        default = "xtruder/rabbitmq-autocluster:3.6.8-management";
+        default = "rabbitmq:3.7";
       };
 
       replicas = mkOption {
@@ -32,6 +32,12 @@ with k8s;
       erlangCookie = mkSecretOption {
         description = "Rabbitmq erlang cookie secret";
         default.key = "cookie";
+      };
+
+      enabledPlugins = mkOption {
+        description = "List of rabbitmq plugins";
+        type = types.listOf types.str;
+        default = ["rabbitmq_management"];
       };
 
       storage = {
@@ -57,20 +63,32 @@ with k8s;
 
     config = {
       kubernetes.resources.statefulSets.rabbitmq = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
           replicas = config.replicas;
-          serviceName = name;
+          serviceName = "${module.name}-headless";
           template = {
-            metadata.labels.app = name;
+            metadata.labels.app = module.name;
             metadata.annotations = {
               "prometheus.io/scrape" = "true";
               "prometheus.io/port" = "9090";
             };
             spec = {
-              serviceAccountName = name;
+              serviceAccountName = module.name;
               terminationGracePeriodSeconds = 10;
+              initContainers.copy-config = {
+                image = config.image;
+                command = ["sh" "-c" "cp /config/* /etc/rabbitmq"];
+                volumeMounts.config = {
+                  name = "config";
+                  mountPath = "/config";
+                };
+                volumeMounts.config-rw = {
+                  name = "config-rw";
+                  mountPath = "/etc/rabbitmq";
+                };
+              };
               containers.rabbitmq = {
                 image = config.image;
                 imagePullPolicy = "Always";
@@ -78,15 +96,9 @@ with k8s;
                   RABBITMQ_DEFAULT_USER.value = config.defaultUser;
                   RABBITMQ_DEFAULT_PASS = secretToEnv config.defaultPassword;
                   RABBITMQ_ERLANG_COOKIE = secretToEnv config.erlangCookie;
-                  MY_POD_IP.valueFrom.fieldRef.fieldPath = "status.podIP";
+                  NODE_NAME.valueFrom.fieldRef.fieldPath = "metadata.name";
+                  RABBITMQ_NODENAME.value = "rabbit@$(NODE_NAME).${module.name}-headless.${module.namespace}.svc.cluster.local";
                   RABBITMQ_USE_LONGNAME.value = "true";
-                  RABBITMQ_NODENAME.value = "rabbit@$(MY_POD_IP)";
-                  AUTOCLUSTER_TYPE.value = "k8s";
-                  AUTOCLUSTER_DELAY.value = "10";
-                  AUTOCLUSTER_FAILURE.value = "stop"; # do not start if not forming cluster
-                  K8S_ADDRESS_TYPE.value = "ip";
-                  AUTOCLUSTER_CLEANUP.value = "true";
-                  CLEANUP_WARN_ONLY.value = "false";
                 };
                 resources.requests = {
                   cpu = "200m";
@@ -96,10 +108,18 @@ with k8s;
                   name = "storage";
                   mountPath = "/var/lib/rabbitmq";
                 };
+                volumeMounts.config-rw = {
+                  name = "config-rw";
+                  mountPath = "/etc/rabbitmq";
+                };
                 ports = [{
                   name = "http";
                   protocol = "TCP";
                   containerPort = 15672;
+                } {
+                  name = "clustering";
+                  protocol = "TCP";
+                  containerPort = 25672;
                 } {
                   name = "amqp";
                   protocol = "TCP";
@@ -107,13 +127,15 @@ with k8s;
                 }];
                 livenessProbe = {
                   exec.command = ["rabbitmqctl" "status"];
-                  initialDelaySeconds = 30;
-                  timeoutSeconds = 5;
+                  initialDelaySeconds = 60;
+                  periodSeconds = 60;
+                  timeoutSeconds = 10;
                 };
                 readinessProbe = {
                   exec.command = ["rabbitmqctl" "status"];
-                  initialDelaySeconds = 10;
-                  timeoutSeconds = 5;
+                  initialDelaySeconds = 20;
+                  periodSeconds = 60;
+                  timeoutSeconds = 10;
                 };
               };
               containers.rabbitmq-prom-exporter = {
@@ -131,6 +153,8 @@ with k8s;
                   containerPort = 9090;
                 }];
               };
+              volumes.config-rw.emptyDir = {};
+              volumes.config.configMap.name = module.name;
             };
           };
           volumeClaimTemplates = mkIf config.storage.enable [{
@@ -144,11 +168,26 @@ with k8s;
         };
       };
 
-      kubernetes.resources.services.rabbitmq = {
-        metadata.name = name;
-        metadata.labels.app = name;
+      kubernetes.resources.services.rabbitmq-headless = {
+        metadata.name = "${module.name}-headless";
+        metadata.labels.app = module.name;
         spec = {
-          selector.app = name;
+          selector.app = module.name;
+          clusterIP = "None";
+          ports = [{
+            name = "amqp";
+            protocol = "TCP";
+            port = 5672;
+            targetPort = 5672;
+          }];
+        };
+      };
+
+      kubernetes.resources.services.rabbitmq = {
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
+        spec = {
+          selector.app = module.name;
           ports = [{
             name = "http";
             protocol = "TCP";
@@ -163,15 +202,47 @@ with k8s;
         };
       };
 
+      kubernetes.resources.configMaps.rabbitmq = {
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
+        data.enabled_plugins = "[${concatStringsSep "," (config.enabledPlugins ++ ["rabbitmq_peer_discovery_k8s"])}].";
+        data."rabbitmq.conf" = ''
+          ## Cluster formation. See http://www.rabbitmq.com/cluster-formation.html to learn more.
+          cluster_formation.peer_discovery_backend  = rabbit_peer_discovery_k8s
+          cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+          ## Should RabbitMQ node name be computed from the pod's hostname or IP address?
+          ## IP addresses are not stable, so using [stable] hostnames is recommended when possible.
+          ## Set to "hostname" to use pod hostnames.
+          ## When this value is changed, so should the variable used to set the RABBITMQ_NODENAME
+          ## environment variable.
+          cluster_formation.k8s.address_type = hostname
+          # overrides Kubernetes service name. Default value is "rabbitmq".
+          cluster_formation.k8s.service_name = ${module.name}-headless
+          cluster_formation.k8s.hostname_suffix = .${module.name}-headless.${module.namespace}.svc.cluster.local
+          ## How often should node cleanup checks run?
+          cluster_formation.node_cleanup.interval = 30
+          ## Set to false if automatic removal of unknown/absent nodes
+          ## is desired. This can be dangerous, see
+          ##  * http://www.rabbitmq.com/cluster-formation.html#node-health-checks-and-cleanup
+          ##  * https://groups.google.com/forum/#!msg/rabbitmq-users/wuOfzEywHXo/k8z_HWIkBgAJ
+          cluster_formation.node_cleanup.only_log_warning = true
+          cluster_partition_handling = autoheal
+          ## See http://www.rabbitmq.com/ha.html#master-migration-data-locality
+          queue_master_locator=min-masters
+          ## See http://www.rabbitmq.com/access-control.html#loopback-users
+          loopback_users.guest = false
+        '';
+      };
+
       kubernetes.resources.serviceAccounts.rabbitmq = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
       };
 
       kubernetes.resources.roles.rabbitmq = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         rules = [{
           apiGroups = [""];
           resources = ["endpoints"];
@@ -181,16 +252,16 @@ with k8s;
 
       kubernetes.resources.roleBindings.rabbitmq = {
         apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
           kind = "Role";
-          name = name;
+          name = module.name;
         };
         subjects = [{
           kind = "ServiceAccount";
-          name = name;
+          name = module.name;
         }];
       };
     };
