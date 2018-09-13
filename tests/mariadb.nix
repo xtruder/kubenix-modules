@@ -21,6 +21,11 @@ with k8s;
           key = "password";
         };
       };
+
+      initdb."init.sql" = ''
+        create table if not exists test (text varchar(255) not null);
+        insert into test(text) values("abcd");
+      '';
     };
   };
 

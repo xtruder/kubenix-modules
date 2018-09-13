@@ -35,6 +35,12 @@ with k8s;
         };
       };
 
+      initdb = mkOption {
+        description = "Initialization scripts or sql files";
+        type = types.nullOr (types.attrsOf types.lines);
+        default = null;
+      };
+
       storage = {
         class = mkOption {
           description = "Name of the storage class to use";
@@ -75,12 +81,24 @@ with k8s;
                 volumeMounts = [{
                   name = "data";
                   mountPath = "/var/lib/mysql";
+                } {
+                  name = "initdb";
+                  mountPath = "/docker-entrypoint-initdb.d";
                 }];
               };
               volumes.data.persistentVolumeClaim.claimName = name;
+              volumes.initdb = mkIf (config.initdb != null) {
+                configMap.name = name;
+              };
             };
           };
         };
+      };
+
+      kubernetes.resources.configMaps.mariadb = mkIf (config.initdb != null) {
+        metadata.name = name;
+        metadata.labels.app = name;
+        data = config.initdb;
       };
 
       kubernetes.resources.podDisruptionBudgets.mariadb = {
