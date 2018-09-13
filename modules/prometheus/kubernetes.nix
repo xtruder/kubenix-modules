@@ -6,8 +6,6 @@ let
   loadYAML = path: (builtins.fromJSON (builtins.readFile (pkgs.runCommand "yaml-to-json" {
   } "${pkgs.remarshal}/bin/remarshal -i ${path} -if yaml -of json > $out")));
 in {
-  imports = [./prometheus.nix ./grafana.nix];
-
   config.kubernetes.moduleDefinitions.prometheus-kubernetes.module = {name, config, module, ...}: {
     options = {
       alerts.enable = mkOption {
@@ -24,25 +22,25 @@ in {
         namespace = module.namespace;
         configuration = {
           rules = {
-            "prometheus.rules" = ./prometheus/prometheus.rules;
+            "prometheus.rules" = ./rules/prometheus.rules;
           };
           alerts = mkIf config.alerts.enable {
-            "kube-controller-manager.alerts" = ./prometheus/kube-controller-manager.rules;
-            "general.alerts" = ./prometheus/general.rules;
-            "etcd3.alerts" = ./prometheus/etcd3.rules;
-            "job.alerts" = ./prometheus/job.rules;
-            "node.alerts" = ./prometheus/node.rules;
-            "alertmanager.alerts" = ./prometheus/alertmanager.rules;
-            "kube-scheduler.alerts" = ./prometheus/kube-scheduler.rules;
-            "kubelet.alerts" = ./prometheus/kubelet.rules;
-            "kube-state-metrics.alerts" = ./prometheus/kube-state-metrics.rules;
-            "kube-apiserver.alerts" = ./prometheus/kube-apiserver.rules;
-            "kubernetes.alerts" = ./prometheus/kubernetes.rules;
+            "kube-controller-manager.alerts" = ./rules/kube-controller-manager.rules;
+            "general.alerts" = ./rules/general.rules;
+            "etcd3.alerts" = ./rules/etcd3.rules;
+            "job.alerts" = ./rules/job.rules;
+            "node.alerts" = ./rules/node.rules;
+            "alertmanager.alerts" = ./rules/alertmanager.rules;
+            "kube-scheduler.alerts" = ./rules/kube-scheduler.rules;
+            "kubelet.alerts" = ./rules/kubelet.rules;
+            "kube-state-metrics.alerts" = ./rules/kube-state-metrics.rules;
+            "kube-apiserver.alerts" = ./rules/kube-apiserver.rules;
+            "kubernetes.alerts" = ./rules/kubernetes.rules;
           };
           extraScrapeConfigs = loadYAML
             (builtins.toFile "scrapeconfigs.yaml"  (
               builtins.replaceStrings ["prometheus-blackbox-exporter"] ["${name}-prometheus-blackbox-exporter"]
-                (builtins.readFile ./prometheus/scrapeconfigs.yaml)));
+                (builtins.readFile ./scrapeconfigs.yaml)));
         };
       };
 
@@ -67,15 +65,15 @@ in {
         module = "grafana";
         namespace = module.namespace;
         configuration.resources = {
-          "deployment-dashboard.json" = ./prometheus/deployment-dashboard.json;
-          "kubernetes-capacity-planing-dashboard.json" = ./prometheus/kubernetes-capacity-planing-dashboard.json;
-          "kubernetes-cluster-health-dashboard.json" = ./prometheus/kubernetes-cluster-health-dashboard.json;
-          "kubernetes-cluster-status-dashboard.json" = ./prometheus/kubernetes-cluster-status-dashboard.json;
-          "kubernetes-cluster-usage-dashboard.json" = ./prometheus/kubernetes-cluster-usage-dashboard.json;
-          "kubernetes-control-plane-status-dashboard.json" = ./prometheus/kubernetes-control-plane-status-dashboard.json;
-          "kubernetes-resource-requests-dashboard.json" = ./prometheus/kubernetes-resource-requests-dashboard.json;
-          "nodes-dashboard.json" = ./prometheus/nodes-dashboard.json;
-          "pods-dashboard.json" = ./prometheus/pods-dashboard.json;
+          "deployment-dashboard.json" = ./dashboards/deployment-dashboard.json;
+          "kubernetes-capacity-planing-dashboard.json" = ./dashboards/kubernetes-capacity-planing-dashboard.json;
+          "kubernetes-cluster-health-dashboard.json" = ./dashboards/kubernetes-cluster-health-dashboard.json;
+          "kubernetes-cluster-status-dashboard.json" = ./dashboards/kubernetes-cluster-status-dashboard.json;
+          "kubernetes-cluster-usage-dashboard.json" = ./dashboards/kubernetes-cluster-usage-dashboard.json;
+          "kubernetes-control-plane-status-dashboard.json" = ./dashboards/kubernetes-control-plane-status-dashboard.json;
+          "kubernetes-resource-requests-dashboard.json" = ./dashboards/kubernetes-resource-requests-dashboard.json;
+          "nodes-dashboard.json" = ./dashboards/nodes-dashboard.json;
+          "pods-dashboard.json" = ./dashboards/pods-dashboard.json;
           "prometheus-datasource.json" = {
             access = "proxy";
             basicAuth = false;
