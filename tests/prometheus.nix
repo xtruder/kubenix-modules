@@ -1,7 +1,7 @@
 { config, ... }:
 
 {
-  require = [./test.nix ../modules/prometheus.nix];
+  require = [./test.nix] ++ (import ../modules/prometheus/module-list.nix);
 
   kubernetes.modules.prometheus = {
     module = "prometheus";
