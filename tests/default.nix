@@ -28,6 +28,7 @@ in {
   minio = buildTest ./minio.nix {};
   prometheus = buildTest ./prometheus.nix {};
   prometheus-kubernetes = buildTest ./prometheus-kubernetes.nix {};
+  prometheus-sql-exporter = buildTest ./prometheus-sql-exporter.nix {};
   grafana = buildTest ./grafana.nix {};
   kube-lego-gce = buildTest ./kube-lego-gce.nix {};
   pachyderm = buildTest ./pachyderm.nix {};
