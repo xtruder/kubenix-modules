@@ -174,12 +174,6 @@ in {
         type = types.bool;
       };
 
-      rpcPort = mkOption {
-        description = "Dashd RPC port";
-        default = 8332;
-        type = types.int;
-      };
-
       rpcAuth = mkOption {
         description = "Rpc auth. The field comes in the format: <USERNAME>:<SALT>$<HASH>";
         type = types.str;
@@ -239,6 +233,14 @@ in {
                   cpu = "1000m";
                   memory = "2048Mi";
                 };
+                
+                ports = [{
+                  containerPort = 8332;
+                  name = "rpc";
+                } {
+                  containerPort = 8333;
+                  name = "p2p";
+                }];
               };
               volumes.config.configMap.name = "${name}-config";
             };
@@ -267,7 +269,7 @@ in {
           selector.app = name;
           ports = [{
             name = "rpc";
-            port = config.rpcPort;
+            port = 8332;
           } {
             name = "p2p";
             port = 8333;
