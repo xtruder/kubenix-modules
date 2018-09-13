@@ -1,0 +1,9 @@
+[
+  ./prometheus.nix
+  ./alertmanager.nix
+  ./blackbox-exporter.nix
+  ./push-gateway.nix
+  ./kube-state-metrics.nix
+  ./node-exporter.nix
+  ./kubernetes.nix
+]
