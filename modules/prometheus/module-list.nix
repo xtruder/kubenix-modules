@@ -6,4 +6,5 @@
   ./kube-state-metrics.nix
   ./node-exporter.nix
   ./kubernetes.nix
+  ./sql-exporter.nix
 ]
