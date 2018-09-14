@@ -36,7 +36,8 @@ admin=127.0.0.1
 type=${config.db.type}
 path=/data
 compression=1
-online_delete=${toString config.onlineDelete}
+${optionalString (config.onlineDelete != null)
+  "online_delete=${toString config.onlineDelete}"}
 advisory_delete=0
 open_files=2000
 filter_bits=12
@@ -123,16 +124,17 @@ ${config.extraConfig}
 
       onlineDelete = mkOption {
         description = "How much ledger history is kept";
-        type = types.int;
-        # retention time * seconds in a day / 3.5s avg per block
+        type = types.nullOr types.int;
         default =
-          toInt (head (splitString "." (toString (config.retentionTime * 86400 / 3.5))));
+          if config.ledgerHistory == "full" then null
+          else config.ledgerHistory;
       };
 
       ledgerHistory = mkOption {
         description = "How much history to fetch";
-        type = types.int;
-        default = config.onlineDelete;
+        type = types.either (types.enum ["full"]) types.int;
+        # retention time * seconds in a day / 3.5s avg per block
+        default = toInt (head (splitString "." (toString (config.retentionTime * 86400 / 3.5))));
       };
 
       ips = mkOption {
