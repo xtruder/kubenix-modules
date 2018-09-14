@@ -100,7 +100,7 @@ in {
       #rpcallowip=2001:db8:85a3:0:0:8a2e:370:7334/96
 
       # Listen for RPC connections on this TCP port:
-      rpcport=${toString config.rpcPort}
+      rpcport=8332
 
       # You can use Dash or dashd to send commands to Dash/dashd
       # running on another host using this option:
