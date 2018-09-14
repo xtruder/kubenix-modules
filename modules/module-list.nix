@@ -16,9 +16,7 @@
   ./parity.nix
   ./beehive.nix
   ./minio.nix
-  ./prometheus.nix
   ./grafana.nix
-  ./prometheus-kubernetes.nix
   ./galera.nix
   ./kube-lego.nix
   ./pachyderm.nix
@@ -46,4 +44,4 @@
   ./ksql.nix
   ./argo-ingress-controller.nix
   ./ambassador.nix
-]
+] ++ import ./prometheus/module-list.nix
