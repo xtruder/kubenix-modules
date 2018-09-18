@@ -209,6 +209,7 @@ ${config.extraConfig}
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
+          updateStrategy.type = "RollingUpdate";
           replicas = config.replicas;
           serviceName = name;
           podManagementPolicy = "Parallel";
