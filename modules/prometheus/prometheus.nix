@@ -8,8 +8,8 @@ with lib;
     prometheusConfig = {
       global = {
         external_labels = config.externalLabels;
-        scrape_interval = "15s";
-        evaluation_interval = "30s";
+        scrape_interval = "1m";
+        evaluation_interval = "1m";
       };
 
       rule_files = ["/etc/config/*.rules" "/etc/config/*.alerts"];
