@@ -9,7 +9,7 @@ with lib;
       image = mkOption {
         description = "Name of the parity image to use";
         type = types.str;
-        default = "parity/parity:v1.10.6";
+        default = "parity/parity:v2.1.2";
       };
 
       replicas = mkOption {
@@ -89,12 +89,13 @@ with lib;
           replicas = config.replicas;
           serviceName = name;
           podManagementPolicy = "Parallel";
+          updateStrategy.type = "RollingUpdate";
           template = {
             metadata.labels.app = name;
             spec = {
               containers.parity = {
                 image = config.image;
-                command = ["/parity/parity"
+                args = [
                   "--jsonrpc-apis=${concatStringsSep "," config.jsonrpc.apis}"
                   ''--jsonrpc-cors="*"''
                   "--jsonrpc-interface=all"
