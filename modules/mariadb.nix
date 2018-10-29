@@ -63,6 +63,8 @@ with k8s;
     };
 
     config = {
+      args = ["ignore-db-dir=lost+found"];
+
       kubernetes.resources.deployments.mariadb = {
         metadata.name = name;
         metadata.labels.app = name;
