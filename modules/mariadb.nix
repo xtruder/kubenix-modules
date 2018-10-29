@@ -85,13 +85,9 @@ with k8s;
                   name = "mariadb";
                   containerPort = 3306;
                 }];
-                volumeMounts = [{
-                  name = "data";
-                  mountPath = "/var/lib/mysql";
-                } {
-                  name = "initdb";
-                  mountPath = "/docker-entrypoint-initdb.d";
-                }];
+                volumeMounts."/var/lib/mysql".name = "data";
+                volumeMounts."/docker-entrypoint-initdb.d" =
+                  mkIf (config.initdb != null) { name = "initdb"; };
               };
               volumes.data.persistentVolumeClaim.claimName = name;
               volumes.initdb = mkIf (config.initdb != null) {
