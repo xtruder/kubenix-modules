@@ -10,6 +10,7 @@ with k8s;
 
     configuration = {
       rootPassword.name = "mysql-root-password";
+      args = ["log-bin-trust-function-creators"];
       mysql = {
         database = "test";
         user = {

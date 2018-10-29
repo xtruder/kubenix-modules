@@ -41,6 +41,12 @@ with k8s;
         default = null;
       };
 
+      args = mkOption {
+        description = "List of mariadb args";
+        type = types.listOf types.str;
+        default = [];
+      };
+
       storage = {
         class = mkOption {
           description = "Name of the storage class to use";
@@ -68,6 +74,7 @@ with k8s;
             spec = {
               containers.mariadb = {
                 image = config.image;
+                args = map (v: "--${v}") config.args;
                 env = {
                   MYSQL_ROOT_PASSWORD = secretToEnv config.rootPassword;
                   MYSQL_DATABASE.value = config.mysql.database;
