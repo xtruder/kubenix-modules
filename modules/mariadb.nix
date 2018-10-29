@@ -70,6 +70,7 @@ with k8s;
         metadata.labels.app = name;
         spec = {
           replicas = 1;
+          strategy.type = "Recreate";
           selector.matchLabels.app = name;
           template = {
             metadata.labels.app = name;
