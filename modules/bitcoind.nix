@@ -274,6 +274,13 @@ in {
           }];
         };
       };
+
+      kubernetes.resources.podDisruptionBudgets.bitcoind = {
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = bitcoind;
+      };
     };
   };
 }
