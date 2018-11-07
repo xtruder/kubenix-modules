@@ -264,6 +264,13 @@ with k8s;
           name = module.name;
         }];
       };
+
+      kubernetes.resources.podDisruptionBudgets.rabbitmq = {
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = module.name;
+      };
     };
   };
 }
