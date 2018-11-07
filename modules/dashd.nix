@@ -6,7 +6,9 @@ with lib;
 let
   b2s = value: if value then "1" else "0";
 in {
-  config.kubernetes.moduleDefinitions.dashd.module = {name, config, ...}: let
+  config.kubernetes.moduleDefinitions.dashd.module = {config, module, ...}: let
+    name = module.name;
+
     dashdConfig = ''
       ##
       ## bitcoin.conf configuration file. Lines beginning with # are comments.
@@ -275,6 +277,13 @@ in {
             port = 8333;
           }];
         };
+      };
+
+      kubernetes.resources.podDisruptionBudgets.dashd = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = name;
       };
     };
   };
