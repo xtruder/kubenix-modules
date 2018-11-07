@@ -6,7 +6,7 @@ with lib;
 let
   b2s = value: if value then "1" else "0";
 in {
-  config.kubernetes.moduleDefinitions.bitcoind.module = {name, config, ...}: let
+  config.kubernetes.moduleDefinitions.bitcoind.module = {config, module, ...}: let
     bitcoindConfig = ''
       ##
       ## bitcoin.conf configuration file. Lines beginning with # are comments.
@@ -202,14 +202,14 @@ in {
 
     config = {
       kubernetes.resources.statefulSets.bitcoind = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
           replicas = config.replicas;
-          serviceName = name;
+          serviceName = module.name;
           podManagementPolicy = "Parallel";
           template = {
-            metadata.labels.app = name;
+            metadata.labels.app = module.name;
             spec = {
               initContainers = [{
                 name = "copy-bitcoind-config";
@@ -240,7 +240,7 @@ in {
                   memory = "2048Mi";
                 };
               };
-              volumes.config.configMap.name = "${name}-config";
+              volumes.config.configMap.name = "${module.name}-config";
             };
           };
           volumeClaimTemplates = [{
@@ -255,16 +255,16 @@ in {
       };
 
       kubernetes.resources.configMaps.bitcoind = {
-        metadata.name = "${name}-config";
+        metadata.name = "${module.name}-config";
         data."bitcoin.conf" = bitcoindConfig;
       };
 
       kubernetes.resources.services.bitcoind = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
           type = "NodePort";
-          selector.app = name;
+          selector.app = module.name;
           ports = [{
             name = "rpc";
             port = config.rpcPort;
@@ -273,6 +273,13 @@ in {
             port = 8333;
           }];
         };
+      };
+
+      kubernetes.resources.podDisruptionBudgets.bitcoind = {
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = module.name;
       };
     };
   };
