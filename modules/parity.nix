@@ -9,7 +9,7 @@ with lib;
       image = mkOption {
         description = "Name of the parity image to use";
         type = types.str;
-        default = "parity/parity:v2.1.2";
+        default = "parity/parity:v2.0.9";
       };
 
       replicas = mkOption {
@@ -93,6 +93,19 @@ with lib;
           template = {
             metadata.labels.app = name;
             spec = {
+              containers.ethmonitor = {
+                image = "gatehub/ethmonitor";
+                env.ETH_NODE_URL.value = "http://localhost:8545";
+                ports = [
+                  { containerPort = 3000; }
+                ];
+                resources = {
+                  requests.cpu = "50m";
+                  requests.memory = "60Mi";
+                  limits.cpu = "100m";
+                  limits.memory = "60Mi";
+                };
+              };
               containers.parity = {
                 image = config.image;
                 args = [
@@ -123,8 +136,8 @@ with lib;
                 ];
                 readinessProbe = {
                   httpGet = {
-                    path = "/api/health";
-                    port = 8545;
+                    path = "/";
+                    port = 3000;
                   };
                   initialDelaySeconds = 30;
                   timeoutSeconds = 30;
