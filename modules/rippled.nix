@@ -4,8 +4,9 @@ with k8s;
 with lib;
 
 {
-  config.kubernetes.moduleDefinitions.rippled.module = {name, config, ...}: let
-  rippledConfig = ''
+  config.kubernetes.moduleDefinitions.rippled.module = {config, module, ...}: let
+    name = module.name;
+    rippledConfig = ''
 [server]
 port_peer
 port_rpc
@@ -284,6 +285,13 @@ ${config.extraConfig}
             nodePort = config.peerPort;
           }];
         };
+      };
+
+      kubernetes.resources.podDisruptionBudgets.rippled = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        spec.maxUnavailable = 1;
+        spec.selector.matchLabels.app = name;
       };
     };
   };
