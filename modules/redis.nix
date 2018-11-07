@@ -791,7 +791,10 @@ with lib;
         metadata.labels.app = module.name;
         metadata.labels.component = "redis-proxy";
         spec.maxUnavailable = 1;
-        spec.selector.matchLabels.app = "${module.name}-proxy";
+        spec.selector.matchLabels = {
+          app = module.name;
+          component = "redis-proxy";
+        };
       };
 
       kubernetes.resources.statefulSets.redis-node = {
@@ -906,7 +909,10 @@ with lib;
         metadata.labels.app = module.name;
         metadata.labels.component = "redis-node";
         spec.maxUnavailable = 1;
-        spec.selector.matchLabels.app = "${module.name}-node";
+        spec.selector.matchLabels = {
+          app = module.name;
+          component = "redis-node";
+        };
       };
 
       kubernetes.resources.statefulSets.redis-sentinel = {
