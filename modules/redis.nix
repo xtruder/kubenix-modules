@@ -827,8 +827,10 @@ with lib;
                 };
               }];
 
-              # allow up to 5 minutes for redis node to shutdown
-              terminationGracePeriodSeconds = 300;
+              # allow up to 15 minutes for redis node to shutdown
+              # if redis is large it would result final write to rdb file will
+              # take a long time
+              terminationGracePeriodSeconds = 900;
 
               containers.redis-metrics = {
                 image = "oliver006/redis_exporter";
