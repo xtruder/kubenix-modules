@@ -802,6 +802,7 @@ with lib;
         metadata.labels.app = module.name;
         metadata.labels.component = "redis-node";
         spec = {
+          updateStrategy.type = "RollingUpdate";
           podManagementPolicy = "Parallel";
           serviceName = "${module.name}-node";
           replicas = config.nodes.replicas;
@@ -828,13 +829,27 @@ with lib;
 
               # allow up to 5 minutes for redis node to shutdown
               terminationGracePeriodSeconds = 300;
-              containers.metrics = {
+
+              containers.redis-metrics = {
                 image = "oliver006/redis_exporter";
                 env.REDIS_PASSWORD = mkIf (config.password != null) (secretToEnv config.password);
                 ports = [{
                   name = "metrics";
                   containerPort = 9121;
                 }];
+              };
+
+              containers.redis-health = {
+                image = "xtruder/redis-health";
+                env.REDIS_PASS = mkIf (config.password != null) (secretToEnv config.password);
+                ports = [{
+                  name = "health";
+                  containerPort = 5000;
+                }];
+                resources.requests = {
+                  cpu = "50m";
+                  memory = "20Mi";
+                }; 
               };
 
               containers.redis = {
@@ -880,12 +895,9 @@ with lib;
                 };
                 resources.limits.cpu = config.nodes.limit;
 
-                readinessProbe = {
-                  exec.command = ["sh" "-c" ''
-                    redis-cli ${optionalString (config.password != null) "-a $REDIS_PASSWORD"} ping | grep PONG
-                  ''];
-                  initialDelaySeconds = 15;
-                  timeoutSeconds = 5;
+                readinessProbe.httpGet = {
+                  path = "/healthz";
+                  port = 5000;
                 };
               };
 
