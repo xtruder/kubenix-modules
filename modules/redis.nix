@@ -802,6 +802,7 @@ with lib;
         metadata.labels.app = module.name;
         metadata.labels.component = "redis-node";
         spec = {
+          updateStrategy.type = "RollingUpdate";
           podManagementPolicy = "Parallel";
           serviceName = "${module.name}-node";
           replicas = config.nodes.replicas;
