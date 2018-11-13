@@ -12,6 +12,7 @@ in {
   bitcoind = buildTest ./bitcoind.nix {};
   bitcoincashd = buildTest ./bitcoincashd.nix {};
   dashd = buildTest ./dashd.nix {};
+  litecoind = buildTest ./litecoind.nix {};
   rabbitmq = buildTest ./rabbitmq.nix {};
   elasticsearch = buildTest ./elasticsearch.nix {};
   elasticsearch-curator = buildTest ./elasticsearch-curator.nix {};

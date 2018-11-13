@@ -3,6 +3,7 @@
   ./bitcoind.nix
   ./bitcoincashd.nix
   ./dashd.nix
+  ./litecoin.nix
   ./rabbitmq.nix
   ./elasticsearch.nix
   ./elasticsearch-curator.nix
