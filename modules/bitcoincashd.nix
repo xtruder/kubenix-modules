@@ -147,7 +147,7 @@ in {
       image = mkOption {
         description = "Name of the bitcoincashd image to use";
         type = types.str;
-        default = "gatehub/bitcoincashd";
+        default = "uphold/bitcoin-abc";
       };
 
       replicas = mkOption {
@@ -214,13 +214,13 @@ in {
               initContainers = [{
                 name = "copy-bitcoincashd-config";
                 image = "busybox";
-                command = ["sh" "-c" "cp /config/bitcoincash.conf /bitcoin/.bitcoin/bitcoin.conf"];
+                command = ["sh" "-c" "cp /config/bitcoincash.conf /home/bitcoin/.bitcoin/bitcoin.conf"];
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/config";
                 } {
                   name = "data";
-                  mountPath = "/bitcoin/.bitcoin/";
+                  mountPath = "/home/bitcoin/.bitcoin/";
                 }];
               }];
               containers.bitcoincashd = {
@@ -228,7 +228,7 @@ in {
 
                 volumeMounts = [{
                   name = "data";
-                  mountPath = "/bitcoin/.bitcoin/";
+                  mountPath = "/home/bitcoin/.bitcoin/";
                 }];
 
                 resources.requests = {

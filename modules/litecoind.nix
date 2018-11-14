@@ -147,7 +147,7 @@ in {
       image = mkOption {
         description = "Name of the litecoind image to use";
         type = types.str;
-        default = "gatehub/litecoind";
+        default = "uphold/litecoin-core";
       };
 
       replicas = mkOption {
