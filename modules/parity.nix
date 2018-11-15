@@ -101,9 +101,9 @@ with lib;
                 ];
                 resources = {
                   requests.cpu = "50m";
-                  requests.memory = "60Mi";
+                  requests.memory = "128Mi";
                   limits.cpu = "100m";
-                  limits.memory = "60Mi";
+                  limits.memory = "128Mi";
                 };
               };
               containers.parity = {
