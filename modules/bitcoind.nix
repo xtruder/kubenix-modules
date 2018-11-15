@@ -99,9 +99,6 @@ in {
       #rpcallowip=1.2.3.4/24
       #rpcallowip=2001:db8:85a3:0:0:8a2e:370:7334/96
 
-      # Listen for RPC connections on this TCP port:
-      rpcport=${toString config.rpcPort}
-
       # You can use Bitcoin or bitcoind to send commands to Bitcoin/bitcoind
       # running on another host using this option:
       #rpcconnect=127.0.0.1
@@ -172,12 +169,6 @@ in {
         description = "Whether to run in regtest mode";
         default = false;
         type = types.bool;
-      };
-
-      rpcPort = mkOption {
-        description = "Bitcoind RPC port";
-        default = 8332;
-        type = types.int;
       };
 
       rpcAuth = mkOption {
@@ -263,14 +254,19 @@ in {
         metadata.name = module.name;
         metadata.labels.app = module.name;
         spec = {
-          type = "NodePort";
           selector.app = module.name;
           ports = [{
             name = "rpc";
-            port = config.rpcPort;
+            port = 8332;
+          } {
+            name = "rpc";
+            port = 18332;
           } {
             name = "p2p";
             port = 8333;
+          } {
+            name = "p2p";
+            port = 18333;
           }];
         };
       };
