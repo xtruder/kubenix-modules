@@ -98,6 +98,7 @@ in {
       #rpcallowip=10.1.1.34/255.255.255.0
       #rpcallowip=1.2.3.4/24
       #rpcallowip=2001:db8:85a3:0:0:8a2e:370:7334/96
+      rpcallowip=0.0.0.0/0
 
       # You can use Bitcoin or bitcoind to send commands to Bitcoin/bitcoind
       # running on another host using this option:
@@ -230,6 +231,20 @@ in {
                   cpu = "1000m";
                   memory = "2048Mi";
                 };
+
+                ports = [{
+                  name = "rpc";
+                  port = 8332;
+                } {
+                  name = "rpc";
+                  port = 18332;
+                } {
+                  name = "p2p";
+                  port = 8333;
+                } {
+                  name = "p2p";
+                  port = 18333;
+                }];
               };
               volumes.config.configMap.name = "${module.name}-config";
             };

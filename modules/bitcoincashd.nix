@@ -98,9 +98,7 @@ in {
       #rpcallowip=10.1.1.34/255.255.255.0
       #rpcallowip=1.2.3.4/24
       #rpcallowip=2001:db8:85a3:0:0:8a2e:370:7334/96
-
-      # Listen for RPC connections on this TCP port:
-      rpcport=${toString config.rpcPort}
+      rpcallowip=0.0.0.0/0
 
       # You can use Bitcoin or bitcoind to send commands to Bitcoin/bitcoind
       # running on another host using this option:
@@ -174,12 +172,6 @@ in {
         type = types.bool;
       };
 
-      rpcPort = mkOption {
-        description = "Bitcoincashd RPC port";
-        default = 8332;
-        type = types.int;
-      };
-
       rpcAuth = mkOption {
         description = "Rpc auth. The field comes in the format: <USERNAME>:<SALT>$<HASH>";
         type = types.str;
@@ -214,7 +206,7 @@ in {
               initContainers = [{
                 name = "copy-bitcoincashd-config";
                 image = "busybox";
-                command = ["sh" "-c" "cp /config/bitcoincash.conf /home/bitcoin/.bitcoin/bitcoin.conf"];
+                command = ["sh" "-c" "cp /config/bitcoin.conf /home/bitcoin/.bitcoin/bitcoin.conf"];
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/config";
@@ -239,6 +231,23 @@ in {
                   cpu = "1000m";
                   memory = "2048Mi";
                 };
+
+                ports = [{
+                  name = "rpc";
+                  port = 8332;
+                } {
+                  name = "rpc";
+                  port = 18332;
+                } {
+                  name = "rpc";
+                  port = 18444;
+                } {
+                  name = "p2p";
+                  port = 8333;
+                } {
+                  name = "p2p";
+                  port = 18333;
+                }];
               };
               volumes.config.configMap.name = "${name}-config";
             };
@@ -256,21 +265,29 @@ in {
 
       kubernetes.resources.configMaps.bitcoincashd = {
         metadata.name = "${name}-config";
-        data."bitcoincash.conf" = bitcoincashdConfig;
+        data."bitcoin.conf" = bitcoincashdConfig;
       };
 
       kubernetes.resources.services.bitcoincashd = {
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
-          type = "NodePort";
           selector.app = name;
           ports = [{
             name = "rpc";
-            port = config.rpcPort;
+            port = 8332;
+          } {
+            name = "rpc";
+            port = 18332;
+          } {
+            name = "rpc";
+            port = 18444;
           } {
             name = "p2p";
             port = 8333;
+          } {
+            name = "p2p";
+            port = 18333;
           }];
         };
       };

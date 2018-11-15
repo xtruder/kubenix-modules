@@ -98,9 +98,7 @@ in {
       #rpcallowip=10.1.1.34/255.255.255.0
       #rpcallowip=1.2.3.4/24
       #rpcallowip=2001:db8:85a3:0:0:8a2e:370:7334/96
-
-      # Listen for RPC connections on this TCP port:
-      rpcport=${toString config.rpcPort}
+      rpcallowip=0.0.0.0/0
 
       # You can use Litecoin or litecoind to send commands to Litecoin/litecoind
       # running on another host using this option:
@@ -174,12 +172,6 @@ in {
         type = types.bool;
       };
 
-      rpcPort = mkOption {
-        description = "litecoind RPC port";
-        default = 8332;
-        type = types.int;
-      };
-
       rpcAuth = mkOption {
         description = "Rpc auth. The field comes in the format: <USERNAME>:<SALT>$<HASH>";
         type = types.str;
@@ -240,6 +232,24 @@ in {
                   memory = "2048Mi";
                 };
               };
+
+              ports = [{
+                name = "rpc";
+                port = 9332;
+              } {
+                name = "rpc";
+                port = 19332;
+              } {
+                name = "rpc";
+                port = 19444;
+              } {
+                name = "p2p";
+                port = 9333;
+              } {
+                name = "p2p";
+                port = 19333;
+              }];
+
               volumes.config.configMap.name = "${module.name}-config";
             };
           };
@@ -263,14 +273,22 @@ in {
         metadata.name = module.name;
         metadata.labels.app = module.name;
         spec = {
-          type = "NodePort";
           selector.app = module.name;
           ports = [{
             name = "rpc";
-            port = config.rpcPort;
+            port = 9332;
+          } {
+            name = "rpc";
+            port = 19332;
+          } {
+            name = "rpc";
+            port = 19444;
           } {
             name = "p2p";
             port = 9333;
+          } {
+            name = "p2p";
+            port = 19333;
           }];
         };
       };
