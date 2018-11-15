@@ -233,19 +233,19 @@ in {
                 };
 
                 ports = [{
-                  name = "rpc";
+                  name = "rpc-mainnet";
                   containerPort = 9332;
                 } {
-                  name = "rpc";
+                  name = "rpc-testnet";
                   containerPort = 19332;
                 } {
-                  name = "rpc";
+                  name = "rpc-regtest";
                   containerPort = 19444;
                 } {
-                  name = "p2p";
+                  name = "p2p-mainnet";
                   containerPort = 9333;
                 } {
-                  name = "p2p";
+                  name = "p2p-testnet";
                   containerPort = 19333;
                 }];
               };
@@ -274,19 +274,19 @@ in {
         spec = {
           selector.app = module.name;
           ports = [{
-            name = "rpc";
+            name = "rpc-mainnet";
             port = 9332;
           } {
-            name = "rpc";
+            name = "rpc-testnet";
             port = 19332;
           } {
-            name = "rpc";
+            name = "rpc-regtest";
             port = 19444;
           } {
-            name = "p2p";
+            name = "p2p-mainnet";
             port = 9333;
           } {
-            name = "p2p";
+            name = "p2p-testnet";
             port = 19333;
           }];
         };

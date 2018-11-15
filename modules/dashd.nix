@@ -236,16 +236,16 @@ in {
                 
                 ports = [{
                   containerPort = 9998;
-                  name = "rpc";
+                  name = "rpc-mainnet";
                 } {
                   containerPort = 19998;
-                  name = "rpc";
+                  name = "rpc-testnet";
                 } {
                   containerPort = 9999;
-                  name = "p2p";
+                  name = "p2p-mainnet";
                 } {
                   containerPort = 19999;
-                  name = "p2p";
+                  name = "p2p-testnet";
                 }];
               };
               volumes.config.configMap.name = "${name}-config";
@@ -274,16 +274,16 @@ in {
           selector.app = name;
           ports = [{
             port = 9998;
-            name = "rpc";
+            name = "rpc-mainnet";
           } {
             port = 19998;
-            name = "rpc";
+            name = "rpc-testnet";
           } {
             port = 9999;
-            name = "p2p";
+            name = "p2p-mainnet";
           } {
             port = 19999;
-            name = "p2p";
+            name = "p2p-testnet";
           }];
         };
       };
