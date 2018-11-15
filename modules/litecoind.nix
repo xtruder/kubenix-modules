@@ -231,25 +231,24 @@ in {
                   cpu = "1000m";
                   memory = "2048Mi";
                 };
+
+                ports = [{
+                  name = "rpc";
+                  containerPort = 9332;
+                } {
+                  name = "rpc";
+                  containerPort = 19332;
+                } {
+                  name = "rpc";
+                  containerPort = 19444;
+                } {
+                  name = "p2p";
+                  containerPort = 9333;
+                } {
+                  name = "p2p";
+                  containerPort = 19333;
+                }];
               };
-
-              ports = [{
-                name = "rpc";
-                containerPort = 9332;
-              } {
-                name = "rpc";
-                containerPort = 19332;
-              } {
-                name = "rpc";
-                containerPort = 19444;
-              } {
-                name = "p2p";
-                containerPort = 9333;
-              } {
-                name = "p2p";
-                containerPort = 19333;
-              }];
-
               volumes.config.configMap.name = "${module.name}-config";
             };
           };
