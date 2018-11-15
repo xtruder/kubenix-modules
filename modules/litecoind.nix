@@ -235,19 +235,19 @@ in {
 
               ports = [{
                 name = "rpc";
-                port = 9332;
+                containerPort = 9332;
               } {
                 name = "rpc";
-                port = 19332;
+                containerPort = 19332;
               } {
                 name = "rpc";
-                port = 19444;
+                containerPort = 19444;
               } {
                 name = "p2p";
-                port = 9333;
+                containerPort = 9333;
               } {
                 name = "p2p";
-                port = 19333;
+                containerPort = 19333;
               }];
 
               volumes.config.configMap.name = "${module.name}-config";

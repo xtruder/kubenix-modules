@@ -273,16 +273,16 @@ in {
         spec = {
           selector.app = name;
           ports = [{
-            containerPort = 9998;
+            port = 9998;
             name = "rpc";
           } {
-            containerPort = 19998;
+            port = 19998;
             name = "rpc";
           } {
-            containerPort = 9999;
+            port = 9999;
             name = "p2p";
           } {
-            containerPort = 19999;
+            port = 19999;
             name = "p2p";
           }];
         };
