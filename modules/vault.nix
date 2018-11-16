@@ -61,6 +61,12 @@ with k8s;
         };
       };
 
+      ui.enable = mkOption {
+        description = "Whether to enable vault ui";
+        type = types.bool;
+        default = true;
+      };
+
       configReloadPeriod = mkOption {
         description = "Vault config reload period";
         type = types.int;
@@ -86,6 +92,7 @@ with k8s;
       };
 
       configuration = mkIf (!config.dev.enable) {
+        ui = config.ui.enable;
         listener = [{
           tcp = {
             address = "0.0.0.0:8400";
