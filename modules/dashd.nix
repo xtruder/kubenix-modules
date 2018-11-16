@@ -100,9 +100,7 @@ in {
       #rpcallowip=10.1.1.34/255.255.255.0
       #rpcallowip=1.2.3.4/24
       #rpcallowip=2001:db8:85a3:0:0:8a2e:370:7334/96
-
-      # Listen for RPC connections on this TCP port:
-      rpcport=8332
+      rpcallowip=0.0.0.0/0
 
       # You can use Dash or dashd to send commands to Dash/dashd
       # running on another host using this option:
@@ -237,11 +235,17 @@ in {
                 };
                 
                 ports = [{
-                  containerPort = 8332;
-                  name = "rpc";
+                  containerPort = 9998;
+                  name = "rpc-mainnet";
                 } {
-                  containerPort = 8333;
-                  name = "p2p";
+                  containerPort = 19998;
+                  name = "rpc-testnet";
+                } {
+                  containerPort = 9999;
+                  name = "p2p-mainnet";
+                } {
+                  containerPort = 19999;
+                  name = "p2p-testnet";
                 }];
               };
               volumes.config.configMap.name = "${name}-config";
@@ -267,14 +271,19 @@ in {
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
-          type = "NodePort";
           selector.app = name;
           ports = [{
-            name = "rpc";
-            port = 8332;
+            port = 9998;
+            name = "rpc-mainnet";
           } {
-            name = "p2p";
-            port = 8333;
+            port = 19998;
+            name = "rpc-testnet";
+          } {
+            port = 9999;
+            name = "p2p-mainnet";
+          } {
+            port = 19999;
+            name = "p2p-testnet";
           }];
         };
       };

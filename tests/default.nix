@@ -10,11 +10,14 @@ let
   };
 in {
   bitcoind = buildTest ./bitcoind.nix {};
+  bitcoincashd = buildTest ./bitcoincashd.nix {};
   dashd = buildTest ./dashd.nix {};
+  litecoind = buildTest ./litecoind.nix {};
   rabbitmq = buildTest ./rabbitmq.nix {};
   elasticsearch = buildTest ./elasticsearch.nix {};
   elasticsearch-curator = buildTest ./elasticsearch-curator.nix {};
   redis = buildTest ./redis.nix {};
+  redis-large = buildTest ./redis-large.nix {};
   nginx = buildTest ./nginx.nix {};
   galera = buildTest ./galera.nix {};
   etcd-operator = buildTest ./etcd-operator.nix {};

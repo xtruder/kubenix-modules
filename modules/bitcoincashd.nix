@@ -6,8 +6,8 @@ with lib;
 let
   b2s = value: if value then "1" else "0";
 in {
-  config.kubernetes.moduleDefinitions.bitcoind.module = {config, module, ...}: let
-    bitcoindConfig = ''
+  config.kubernetes.moduleDefinitions.bitcoincashd.module = {name, config, ...}: let
+    bitcoincashdConfig = ''
       ##
       ## bitcoin.conf configuration file. Lines beginning with # are comments.
       ##
@@ -143,13 +143,13 @@ in {
   in {
     options = {
       image = mkOption {
-        description = "Name of the bitcoind image to use";
+        description = "Name of the bitcoincashd image to use";
         type = types.str;
-        default = "kylemanna/bitcoind";
+        default = "uphold/bitcoin-abc";
       };
 
       replicas = mkOption {
-        description = "Number of bitcoind replicas";
+        description = "Number of bitcoincashd replicas";
         type = types.int;
         default = 1;
       };
@@ -193,34 +193,34 @@ in {
     };
 
     config = {
-      kubernetes.resources.statefulSets.bitcoind = {
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
+      kubernetes.resources.statefulSets.bitcoincashd = {
+        metadata.name = name;
+        metadata.labels.app = name;
         spec = {
           replicas = config.replicas;
-          serviceName = module.name;
+          serviceName = name;
           podManagementPolicy = "Parallel";
           template = {
-            metadata.labels.app = module.name;
+            metadata.labels.app = name;
             spec = {
               initContainers = [{
-                name = "copy-bitcoind-config";
+                name = "copy-bitcoincashd-config";
                 image = "busybox";
-                command = ["sh" "-c" "cp /config/bitcoin.conf /bitcoin/.bitcoin/bitcoin.conf"];
+                command = ["sh" "-c" "cp /config/bitcoin.conf /home/bitcoin/.bitcoin/bitcoin.conf"];
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/config";
                 } {
                   name = "data";
-                  mountPath = "/bitcoin/.bitcoin/";
+                  mountPath = "/home/bitcoin/.bitcoin/";
                 }];
               }];
-              containers.bitcoind = {
+              containers.bitcoincashd = {
                 image = config.image;
 
                 volumeMounts = [{
                   name = "data";
-                  mountPath = "/bitcoin/.bitcoin/";
+                  mountPath = "/home/bitcoin/.bitcoin/";
                 }];
 
                 resources.requests = {
@@ -239,6 +239,9 @@ in {
                   name = "rpc-testnet";
                   containerPort = 18332;
                 } {
+                  name = "rpc-regtest";
+                  containerPort = 18444;
+                } {
                   name = "p2p-mainnet";
                   containerPort = 8333;
                 } {
@@ -246,7 +249,7 @@ in {
                   containerPort = 18333;
                 }];
               };
-              volumes.config.configMap.name = "${module.name}-config";
+              volumes.config.configMap.name = "${name}-config";
             };
           };
           volumeClaimTemplates = [{
@@ -260,22 +263,25 @@ in {
         };
       };
 
-      kubernetes.resources.configMaps.bitcoind = {
-        metadata.name = "${module.name}-config";
-        data."bitcoin.conf" = bitcoindConfig;
+      kubernetes.resources.configMaps.bitcoincashd = {
+        metadata.name = "${name}-config";
+        data."bitcoin.conf" = bitcoincashdConfig;
       };
 
-      kubernetes.resources.services.bitcoind = {
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
+      kubernetes.resources.services.bitcoincashd = {
+        metadata.name = name;
+        metadata.labels.app = name;
         spec = {
-          selector.app = module.name;
+          selector.app = name;
           ports = [{
             name = "rpc-mainnet";
             port = 8332;
           } {
             name = "rpc-testnet";
             port = 18332;
+          } {
+            name = "rpc-regtest";
+            port = 18444;
           } {
             name = "p2p-mainnet";
             port = 8333;
@@ -284,13 +290,6 @@ in {
             port = 18333;
           }];
         };
-      };
-
-      kubernetes.resources.podDisruptionBudgets.bitcoind = {
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
-        spec.maxUnavailable = 1;
-        spec.selector.matchLabels.app = module.name;
       };
     };
   };

@@ -1,7 +1,9 @@
 [
   ./globals.nix
   ./bitcoind.nix
+  ./bitcoincashd.nix
   ./dashd.nix
+  ./litecoind.nix
   ./rabbitmq.nix
   ./elasticsearch.nix
   ./elasticsearch-curator.nix

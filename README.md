@@ -1,6 +1,6 @@
-# kubenix-services
+# kubenix-modules
 
-Repository of kubenix services
+Repository of kubenix modules
 
 ## Building tests
 

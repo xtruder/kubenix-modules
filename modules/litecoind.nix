@@ -6,15 +6,15 @@ with lib;
 let
   b2s = value: if value then "1" else "0";
 in {
-  config.kubernetes.moduleDefinitions.bitcoind.module = {config, module, ...}: let
-    bitcoindConfig = ''
+  config.kubernetes.moduleDefinitions.litecoind.module = {config, module, ...}: let
+    litecoindConfig = ''
       ##
-      ## bitcoin.conf configuration file. Lines beginning with # are comments.
+      ## litecoind.conf configuration file. Lines beginning with # are comments.
       ##
 
       # Network-related settings:
 
-      # Run on the test network instead of the real bitcoin network
+      # Run on the test network instead of the real litecoin network
       testnet=${b2s config.testnet}
 
       # Run a regression test network
@@ -44,10 +44,10 @@ in {
       #maxconnections=
 
       #
-      # JSON-RPC options (for controlling a running Bitcoin/bitcoind process)
+      # JSON-RPC options (for controlling a running Litecoin/litecoind process)
       #
 
-      # server=1 tells Bitcoin-Qt and bitcoind to accept JSON-RPC commands
+      # server=1 tells Litecoin-Qt and litecoind to accept JSON-RPC commands
       server=${b2s config.server}
 
       # Bind to given address to listen for JSON-RPC connections. Use [host]:port notation for IPv6.
@@ -55,7 +55,7 @@ in {
       #rpcbind=<addr>
 
       # If no rpcpassword is set, rpc cookie auth is sought. The default `-rpccookiefile` name
-      # is .cookie and found in the `-datadir` being used for bitcoind. This option is typically used
+      # is .cookie and found in the `-datadir` being used for litecoind. This option is typically used
       # when the server and client are run as the same user.
       #
       # If not, you must set rpcuser and rpcpassword to secure the JSON-RPC api. The first
@@ -67,7 +67,7 @@ in {
       # using the output from the script in share/rpcauth/rpcauth.py after providing a username:
       #
       # ./share/rpcauth/rpcauth.py alice
-      # String to be appended to bitcoin.conf:
+      # String to be appended to litecoin.conf:
       # rpcauth=alice:f7efda5c189b999524f151318c0c86$d5b51b3beffbc02b724e5d095828e0bc8b2456e9ac8757ae3211a5d9b16a22ae
       # Your password:
       # DONT_USE_THIS_YOU_WILL_GET_ROBBED_8ak1gI25KFTvjovL3gAM967mies3E=
@@ -82,7 +82,7 @@ in {
       # Authentication
       rpcauth=${toString config.rpcAuth}
 
-      # How many seconds bitcoin will wait for a complete RPC HTTP request.
+      # How many seconds litecoin will wait for a complete RPC HTTP request.
       # after the HTTP connection is established. 
       #rpcclienttimeout=30
 
@@ -93,14 +93,14 @@ in {
       # NOTE: opening up the RPC port to hosts outside your local trusted network is NOT RECOMMENDED,
       # because the rpcpassword is transmitted over the network unencrypted.
 
-      # server=1 tells Bitcoin-Qt to accept JSON-RPC commands.
-      # it is also read by bitcoind to determine if RPC should be enabled 
+      # server=1 tells Litecoin-Qt to accept JSON-RPC commands.
+      # it is also read by litecoind to determine if RPC should be enabled 
       #rpcallowip=10.1.1.34/255.255.255.0
       #rpcallowip=1.2.3.4/24
       #rpcallowip=2001:db8:85a3:0:0:8a2e:370:7334/96
       rpcallowip=0.0.0.0/0
 
-      # You can use Bitcoin or bitcoind to send commands to Bitcoin/bitcoind
+      # You can use Litecoin or litecoind to send commands to Litecoin/litecoind
       # running on another host using this option:
       #rpcconnect=127.0.0.1
 
@@ -114,7 +114,7 @@ in {
       # both prior transactions and several dozen future transactions.
       #keypool=100
 
-      # Pay an optional transaction fee every time you send bitcoins.  Transactions with fees
+      # Pay an optional transaction fee every time you send litecoins.  Transactions with fees
       # are more likely than free transactions to be included in generated blocks, so may
       # be validated sooner.
       #paytxfee=0.00
@@ -128,7 +128,7 @@ in {
 
       # User interface options
 
-      # Start Bitcoin minimized
+      # Start Litecoin minimized
       #min=1
 
       # Minimize to the system tray
@@ -143,13 +143,13 @@ in {
   in {
     options = {
       image = mkOption {
-        description = "Name of the bitcoind image to use";
+        description = "Name of the litecoind image to use";
         type = types.str;
-        default = "kylemanna/bitcoind";
+        default = "uphold/litecoin-core";
       };
 
       replicas = mkOption {
-        description = "Number of bitcoind replicas";
+        description = "Number of litecoind replicas";
         type = types.int;
         default = 1;
       };
@@ -193,7 +193,7 @@ in {
     };
 
     config = {
-      kubernetes.resources.statefulSets.bitcoind = {
+      kubernetes.resources.statefulSets.litecoind = {
         metadata.name = module.name;
         metadata.labels.app = module.name;
         spec = {
@@ -204,23 +204,23 @@ in {
             metadata.labels.app = module.name;
             spec = {
               initContainers = [{
-                name = "copy-bitcoind-config";
+                name = "copy-litecoind-config";
                 image = "busybox";
-                command = ["sh" "-c" "cp /config/bitcoin.conf /bitcoin/.bitcoin/bitcoin.conf"];
+                command = ["sh" "-c" "cp /config/litecoin.conf /home/litecoin/.litecoin/litecoin.conf"];
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/config";
                 } {
                   name = "data";
-                  mountPath = "/bitcoin/.bitcoin/";
+                  mountPath = "/home/litecoin/.litecoin/";
                 }];
               }];
-              containers.bitcoind = {
+              containers.litecoind = {
                 image = config.image;
 
                 volumeMounts = [{
                   name = "data";
-                  mountPath = "/bitcoin/.bitcoin/";
+                  mountPath = "/home/litecoin/.litecoin/";
                 }];
 
                 resources.requests = {
@@ -234,16 +234,19 @@ in {
 
                 ports = [{
                   name = "rpc-mainnet";
-                  containerPort = 8332;
+                  containerPort = 9332;
                 } {
                   name = "rpc-testnet";
-                  containerPort = 18332;
+                  containerPort = 19332;
+                } {
+                  name = "rpc-regtest";
+                  containerPort = 19444;
                 } {
                   name = "p2p-mainnet";
-                  containerPort = 8333;
+                  containerPort = 9333;
                 } {
                   name = "p2p-testnet";
-                  containerPort = 18333;
+                  containerPort = 19333;
                 }];
               };
               volumes.config.configMap.name = "${module.name}-config";
@@ -260,33 +263,36 @@ in {
         };
       };
 
-      kubernetes.resources.configMaps.bitcoind = {
+      kubernetes.resources.configMaps.litecoind = {
         metadata.name = "${module.name}-config";
-        data."bitcoin.conf" = bitcoindConfig;
+        data."litecoin.conf" = litecoindConfig;
       };
 
-      kubernetes.resources.services.bitcoind = {
+      kubernetes.resources.services.litecoind = {
         metadata.name = module.name;
         metadata.labels.app = module.name;
         spec = {
           selector.app = module.name;
           ports = [{
             name = "rpc-mainnet";
-            port = 8332;
+            port = 9332;
           } {
             name = "rpc-testnet";
-            port = 18332;
+            port = 19332;
+          } {
+            name = "rpc-regtest";
+            port = 19444;
           } {
             name = "p2p-mainnet";
-            port = 8333;
+            port = 9333;
           } {
             name = "p2p-testnet";
-            port = 18333;
+            port = 19333;
           }];
         };
       };
 
-      kubernetes.resources.podDisruptionBudgets.bitcoind = {
+      kubernetes.resources.podDisruptionBudgets.litecoind = {
         metadata.name = module.name;
         metadata.labels.app = module.name;
         spec.maxUnavailable = 1;
