@@ -45,17 +45,10 @@ let
 in {
   config.kubernetes.moduleDefinitions.ilp-connector.module = {name, config, module, ...}: {
     options = {
-      image = {
-        connector = mkOption {
-          description = "Docker image to use";
-          type = types.str;
-          default = "uroshercog/ilp-connector";
-        };
-        spsp = mkOption {
-          description = "Docker image to use";
-          type = types.str;
-          default = "uroshercog/ilp-spsp";
-        };
+      image = mkOption {
+        description = "Docker image to use";
+        type = types.str;
+        default = "uroshercog/ilp-connector";
       };
 
       environment = mkOption {
@@ -103,27 +96,28 @@ in {
               type = types.int;
             };
 
-            balance = {
-              maximum = mkOption {
-                description = "Maximum balance (in this account's indivisible base units) the connector will allow";
-                type = types.nullOr types.str;
-                default = null;
-              };
-              minimum = mkOption {
-                description = "Minimum balance (in this account's indivisible base units) the connector must maintain";
-                type = types.nullOr types.str;
-                default = null;
-              };
-              settleThreshold = mkOption {
-                description = "Balance (in this account's indivisible base units) numerically below which the connector will automatically initiate a settlement";
-                type = types.nullOr types.str;
-                default = null;
-              };
-              settleTo = mkOption {
-                description = "Balance (in this account's indivisible base units) the connector will attempt to reach when settling";
-                type = types.nullOr types.str;
-                default = null;
-              };
+            balance = mkOption {
+              type = types.nullOr (types.attrsOf (types.submodule ({name, ...}: {
+                options = {
+                  maximum = mkOption {
+                    description = "Maximum balance (in this account's indivisible base units) the connector will allow";
+                    type = types.str;
+                  };
+                  minimum = mkOption {
+                    description = "Minimum balance (in this account's indivisible base units) the connector must maintain";
+                    type = types.str;
+                  };
+                  settleThreshold = mkOption {
+                    description = "Balance (in this account's indivisible base units) numerically below which the connector will automatically initiate a settlement";
+                    type = types.str;
+                  };
+                  settleTo = mkOption {
+                    description = "Balance (in this account's indivisible base units) the connector will attempt to reach when settling";
+                    type = types.str;
+                  };
+                };
+              })));
+              default = null;
             };
 
             ilpAddressSegment = mkOption {
@@ -167,6 +161,12 @@ in {
             };
 
             sendRoutes = mkOption {
+              description = "Whether we should send and process route broadcasts to peer";
+              type = types.bool;
+              default = true;
+            };
+
+            receiveRoutes = mkOption {
               description = "Whether we should receive and process route broadcasts from this peer";
               type = types.bool;
               default = true;
@@ -252,7 +252,7 @@ in {
           enabled = mkOption {
             description = "Whether to broadcast known routes";
             type = types.bool;
-            default = false;
+            default = true;
           };
 
           interval = mkOption {
@@ -368,23 +368,6 @@ in {
         type = types.listOf types.int;
         default = [];
       };
-
-      spsp = {
-        enable = mkOption {
-          description = "Whether to enable the SPSP server";
-          type = types.bool;
-          default = true;
-        };
-        name = mkOption {
-          description = "Name with which to authenticaticate with connector when establishing the BTP connecton";
-          type = types.str;
-          default = "connector";
-        };
-        secret = mkSecretOption {
-          description = "Secret used to authenticaticate with the connector when establishing the BTP connecton";
-          default.key = "secret";
-        };
-      };
     };
 
     config = {
@@ -405,7 +388,7 @@ in {
             spec = {
               containers = {
                 connector = {
-                  image = config.image.connector;
+                  image = config.image;
 
                   env = {
                     CONNECTOR_PLUGINS.value = ""; # concatStringsSep "," (unique (mapAttrsToList (n: v: v.plugin) config.accounts));
@@ -422,7 +405,7 @@ in {
                     CONNECTOR_MAX_HOLD_TIME.value = toString config.maxHoldTime;
                     CONNECTOR_ROUTE_BROADCAST_ENABLED.value = boolToString config.routing.broadcast.enabled;
                     CONNECTOR_ROUTE_BROADCAST_INTERVAL = mkIf (config.routing.broadcast.enabled) {
-                      value = config.routing.broadcast.interval;
+                      value = toString config.routing.broadcast.interval;
                     };
                     CONNECTOR_ROUTE_CLEANUP_INTERVAL.value = toString config.routing.cleanup;
                     CONNECTOR_ROUTE_EXPIRY.value = toString config.routing.expiry;
@@ -457,19 +440,6 @@ in {
 
                   ports = (map (port: {containerPort = port;}) config.extraConnectorPorts)
                      ++ (optionals config.adminApi.enable [{ containerPort = config.adminApi.port; }]);
-                };
-                spsp = mkIf (config.spsp.enable) {
-                  image = config.image.spsp;
-
-                  ports = [{
-                    containerPort = 80;
-                  }];
-
-                  env = {
-                    # TODO: use secret
-                    # TODO: connect to the local connector
-                    ILP_CREDENTIALS.value = "{\"server\": \"btp+ws://${config.spsp.name}:secret@ilp-connector:7768\"}";
-                  };
                 };
               };
             };
@@ -506,11 +476,6 @@ in {
               name = "admin";
               port = config.adminApi.port;
               targetPort = config.adminApi.port;
-            }])
-            ++ (optionals config.spsp.enable [{
-              name = "spsp";
-              port = 80;
-              targetPort = 80;
             }]);
           };
         };
