@@ -58,4 +58,5 @@ in {
   ksql = buildTest ./ksql.nix {};
   argo-ingress-controller = buildTest ./argo-ingress-controller.nix {};
   ambassador = buildTest ./ambassador.nix {};
+  ilp-connector = buildTest ./ilp-connector.nix {};
 }

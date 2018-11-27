@@ -46,4 +46,5 @@
   ./ksql.nix
   ./argo-ingress-controller.nix
   ./ambassador.nix
+  ./ilp-connector.nix
 ] ++ import ./prometheus/module-list.nix
