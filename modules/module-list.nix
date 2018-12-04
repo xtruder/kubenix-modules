@@ -47,4 +47,5 @@
   ./argo-ingress-controller.nix
   ./ambassador.nix
   ./ilp-connector.nix
+  ./metabase.nix
 ] ++ import ./prometheus/module-list.nix
