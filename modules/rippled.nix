@@ -66,7 +66,7 @@ ${toString config.ledgerHistory}
 full
 
 [validation_quorum]
-3
+${toString config.validationQuorum}
 
 [sntp_servers]
 time.windows.com
@@ -83,7 +83,7 @@ ${config.extraConfig}
   resources = {
     tiny = {
       cpu = "1000m";
-      memory = "4000Mi";
+      memory = "1000Mi";
     };
 
     low = {
@@ -198,6 +198,22 @@ ${config.extraConfig}
         default = "info";
       };
 
+      validationQuorum = mkOption {
+        description = "Rippled validation quorum";
+        type = types.int;
+        default = if config.autovalidator.enable then 1 else 3;
+      };
+
+      autovalidator = {
+        enable = mkEnableOption "auto validator";
+
+        validationInterval = mkOption {
+          description = "Auto validator validation interval in seconds";
+          type = types.int;
+          default = 2;
+        };
+      };
+
       extraConfig = mkOption {
         description = "Extra rippled config";
         default = "";
@@ -220,7 +236,8 @@ ${config.extraConfig}
               containers.rippled = {
                 image = config.image;
                 imagePullPolicy = "Always";
-                command = ["/opt/ripple/bin/rippled" "--conf" "/etc/rippled/rippled.conf"];
+                command = ["/opt/ripple/bin/rippled" "--conf" "/etc/rippled/rippled.conf"] ++
+                  (optionals (config.autovalidator.enable) ["-a" "--start"]);
 
                 resources.requests = resources.${config.nodeSize};
                 resources.limits = resources.${config.nodeSize};
@@ -241,6 +258,16 @@ ${config.extraConfig}
                   name = "storage";
                   mountPath = "/data";
                 }];
+              };
+              containers.autovalidator = mkIf config.autovalidator.enable {
+                image = config.image;
+                imagePullPolicy = "Always";
+                command = ["/bin/sh" "-c" ''
+                  while true; do
+                    /opt/ripple/bin/rippled ledger_accept
+                    sleep ${toString config.autovalidator.validationInterval}
+                  done
+                ''];
               };
               volumes.config.configMap = {
                 defaultMode = k8s.octalToDecimal "0600";
