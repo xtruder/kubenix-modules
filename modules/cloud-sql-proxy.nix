@@ -9,7 +9,7 @@ with lib;
       image = mkOption {
         description = "Docker image to use";
         type = types.str;
-        default = "gcr.io/cloudsql-docker/gce-proxy:1.11";
+        default = "gcr.io/cloudsql-docker/gce-proxy:1.13";
       };
 
       replicas = mkOption {
