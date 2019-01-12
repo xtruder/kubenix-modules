@@ -1,7 +1,7 @@
 # How to contribute
 
 Note: contributing implies licensing those contributions
-under the terms of [COPYING](../LICENSE), which is an MIT-like license.
+under the terms of [LICENSE](../LICENSE), which is an MIT-like license.
 
 ## Opening issues
 
@@ -9,7 +9,7 @@ under the terms of [COPYING](../LICENSE), which is an MIT-like license.
 * [Submit an issue](https://github.com/xtruder/kubenix-modules/issues) - assuming one does not already exist.
   * Clearly describe the issue including steps to reproduce when it is a bug.
   * Include information about module that issue affects
-  * Include information what version of kubenix-services issue happend in.
+  * Include information what version of kubenix-modules issue happend in.
 
 ## Submitting changes
 
