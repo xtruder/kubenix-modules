@@ -48,4 +48,5 @@
   ./ambassador.nix
   ./ilp-connector.nix
   ./metabase.nix
+  ./locust.nix
 ] ++ import ./prometheus/module-list.nix
