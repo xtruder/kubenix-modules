@@ -52,7 +52,7 @@ ${concatStringsSep "\n" config.ips}
 [validators_file]
 validators.txt
 
-${optionalString (config.validationSeed != null) ''
+${optionalString (config.validationSeed != null && !config.validator.enable) ''
 [validation_seed]
 ${config.validationSeed}
 ''}
@@ -78,6 +78,14 @@ pool.ntp.org
 [rpc_startup]
 { "command": "log_level", "severity": "${config.logLevel}"  }
 
+${optionalString (config.cluster.enable) ''
+[ips_fixed]
+${concatStringsSep "\n" (map (v: v.host + " " + (toString v.port)) config.cluster.peers)}
+
+[cluster_nodes]
+${concatStringsSep "\n" (map (v: v.validationPublicKey + " " + v.name) config.cluster.peers)}
+''}
+
 ${config.extraConfig}
   '';
 
@@ -87,7 +95,7 @@ ${config.extraConfig}
       memory = "1000Mi";
     };
 
-    low = {
+    small = {
       cpu = "4000m";
       memory = "8000Mi";
     };
@@ -216,6 +224,51 @@ ${config.extraConfig}
         };
       };
 
+      validator = {
+        enable = mkEnableOption "validator";
+
+        token = mkSecretOption {
+          description = "Validator token to use for ledger validation";
+          default = {
+            key = "token";
+            name = "${module.name}-validator-token";
+          };
+        };
+      };
+
+      cluster = {
+        enable = mkEnableOption "cluster";
+
+        peers = mkOption {
+          description = "List of peers to form a cluster with";
+          type = types.listOf (types.submodule ({name, ...}: {
+            options = {
+              name = mkOption {
+                default = name;
+              };
+              host = mkOption {
+                description = "Peer's host address";
+                type = types.str;
+              };
+              port = mkOption {
+                description = "Peer's port";
+                type = types.int;
+                default = 32238;
+              };
+              validationPublicKey = mkOption {
+                description = "Peer's public validation key";
+              };
+            };
+          }));
+          default = [];
+        };
+
+        nodeSeedSecret = mkOption {
+          description = "";
+          default = "node-seed";
+        };
+      };
+
       extraConfig = mkOption {
         description = "Extra rippled config";
         default = "";
@@ -235,6 +288,34 @@ ${config.extraConfig}
           template = {
             metadata.labels.app = name;
             spec = {
+              initContainers = [{
+                name = "init-validator";
+                image = "busybox";
+                imagePullPolicy = "IfNotPresent";
+                env = mkIf config.validator.enable {
+                  RIPPLE_VALIDATOR_TOKEN = mkIf config.validator.enable (secretToEnv config.validator.token);
+                };
+                command = ["sh" "-c" ''
+                  cp /etc/rippled-init/rippled.conf /etc/rippled/rippled.conf
+                  ${optionalString (config.validator.enable) ''
+                  echo "[validator_token]" >> /etc/rippled/rippled.conf
+                  echo "$RIPPLE_VALIDATOR_TOKEN" >> /etc/rippled/rippled.conf
+                  ''}
+                  ${optionalString (config.cluster.enable) ''
+                  echo "[node_seed]" >> /etc/rippled/rippled.conf
+                  [[ `hostname` =~ -([0-9]+)$ ]] || exit 1
+                  ORDINAL=''${BASH_REMATCH[1]}
+                  cat /node-seed/token-''$ORDINAL >> /etc/rippled/rippled.conf;
+                  ''}
+                ''];
+                volumeMounts = [{
+                  name = "config";
+                  mountPath = "/etc/rippled";
+                } {
+                  name = "config-init";
+                  mountPath = "/etc/rippled-init";
+                }];
+              }];
               containers.rippled = {
                 image = config.image;
                 imagePullPolicy = "Always";
@@ -255,10 +336,12 @@ ${config.extraConfig}
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/etc/rippled";
-                  readOnly = true;
                 } {
                   name = "storage";
                   mountPath = "/data";
+                }  {
+                  name = "nodeSeed";
+                  mountPath = "/node-seed";
                 }];
               };
               containers.autovalidator = mkIf config.autovalidator.enable {
@@ -271,9 +354,13 @@ ${config.extraConfig}
                   done
                 ''];
               };
-              volumes.config.configMap = {
-                defaultMode = k8s.octalToDecimal "0600";
-                name = "${name}-config";
+              volumes = {
+                config-init.configMap = {
+                  defaultMode = k8s.octalToDecimal "0600";
+                  name = "${name}-config";
+                };
+                config.emptyDir = {};
+                nodeSeed.secret.secretName = config.cluster.nodeSeedSecret;
               };
             };
           };
@@ -295,26 +382,44 @@ ${config.extraConfig}
         data."validators.txt" = builtins.readFile config.validatorFile;
       };
 
-      kubernetes.resources.services.rippled = {
-        metadata.name = name;
-        metadata.labels.app = name;
-        spec = {
-          type = "NodePort";
-          selector.app = name;
-          ports = [{
-            name = "websockets-alt";
-            port = 5006;
-          } {
-            name = "websockets";
-            port = 443;
-            targetPort = 5006;
-          } {
-            name = "p2p";
-            port = config.peerPort;
-            nodePort = config.peerPort;
-          }];
+      kubernetes.resources.services = mkMerge ([{
+        rippled = {
+          metadata.name = name;
+          metadata.labels.app = name;
+          spec = {
+            type = "NodePort";
+            selector.app = name;
+            ports = [{
+              name = "websockets-alt";
+              port = 5006;
+            } {
+              name = "websockets";
+              port = 443;
+              targetPort = 5006;
+            } {
+              name = "p2p";
+              port = config.peerPort;
+              nodePort = config.peerPort;
+            }];
+          };
         };
-      };
+      }] ++ (map(i: {
+        "${module.name}-${toString i}" = {
+          metadata.name = "${module.name}-${toString i}";
+          metadata.labels.name = module.name;
+          spec = {
+            type = "ClusterIP";
+            selector = {
+              app = "${module.name}";
+              "statefulset.kubernetes.io/pod-name" = "${module.name}-${toString i}";
+            };
+            ports = [ {
+              name = "p2p";
+              port = config.peerPort;
+            }];
+          };
+        };
+      }) (range 0 (config.replicas - 1))));
 
       kubernetes.resources.podDisruptionBudgets.rippled = {
         metadata.name = name;
