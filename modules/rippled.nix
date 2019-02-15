@@ -49,6 +49,11 @@ file_size_mult=2
 [ips]
 ${concatStringsSep "\n" config.ips}
 
+${optionalString (config.privatePeer) ''
+[peer_private]
+1
+''}
+
 [validators_file]
 validators.txt
 
@@ -150,6 +155,12 @@ ${config.extraConfig}
         description = "List of ips where to find other servers speaking ripple protocol";
         type = types.listOf types.str;
         default = ["r.ripple.com 51235"];
+      };
+
+      privatePeer = mkOption {
+        description = "Whether to keep the node as private (peers wont forward the IP )";
+        type = types.bool;
+        default = false;
       };
 
       validatorFile = mkOption {
