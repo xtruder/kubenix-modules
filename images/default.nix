@@ -11,37 +11,42 @@ let
 let
   buildImageForPackage = {
     package,
-    ...
-  }@args:  let
-    img = dockerTools.buildImage ({
-      tag = "${getVersion package}-${substring 0 8 (baseNameOf (builtins.unsafeDiscardStringContext img.layer))}";
-      fromImage = args.fromImage or self.base;
-      contents = [package] ++ args.contents or [];
-    } // (filterAttrs (n: _: n != "package") args));
-  in img;
 
-  allImages = mapAttrsToList (_: v: v) (filterAttrs (_: img: isDerivation img) self);
+    name ? package.pname,
 
-  pushImages = { images ? allImages }: pkgs.writeScript "push-docker-images" ''
-    #!/bin/sh
+    tag ? null,
 
-    ${concatStrings (map (image: ''
-    echo "Pushing ${image.image.fullName}"
+    contents ? [],
 
-    ${pkgs.skopeo}/bin/skopeo copy docker-archive:${image} $1/${image.image.fullName}
-    '') images)}
-  '';
+    extraCommands ? "",
+
+    defaultContents ? [pkgs.cacert pkgs.busybox],
+
+    config ? {}
+  }: pkgs.dockerTools.buildLayeredImage {
+    inherit name config;
+
+    contents = [package] ++ contents ++ defaultContents;
+
+    extraCommands = ''
+      mkdir tmp
+      chmod 1777 tmp
+
+      chmod u+w etc
+
+      echo "app:x:1000:1000::/:" > etc/passwd
+      echo "app:x:1000:app" > etc/group
+
+      ${extraCommands}
+    '';
+    maxLayers = 42;
+  };
 
   callPackage = pkgs.newScope (pkgs // {
     images = self;
   });
 in {
-  inherit buildImageForPackage pushImages;
-
-  base = dockerTools.buildImage {
-    name = "base";
-    contents = [pkgs.bashInteractive pkgs.coreutils];
-  };
+  inherit buildImageForPackage;
 
   zookeeper = callPackage ./zookeeper.nix {};
 
