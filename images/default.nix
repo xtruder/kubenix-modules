@@ -53,6 +53,8 @@ in {
   kafka = callPackage ./kafka.nix {};
 
   ksql = callPackage ./ksql.nix {};
+
+  rippled = callPackage ./rippled.nix {};
 });
 
 in fix' (extends overrides images)

@@ -1,4 +1,4 @@
-{ config, lib, k8s, ... }:
+{ config, lib, k8s, images, ... }:
 
 with k8s;
 with lib;
@@ -116,7 +116,7 @@ ${config.extraConfig}
       image = mkOption {
         description = "Name of the rippled image to use";
         type = types.str;
-        default = "gatehub/rippled";
+        default = config.kubernetes.dockerRegistry + (builtins.unsafeDiscardStringContext "/${images.rippled.imageName}:${images.rippled.imageTag}");
       };
 
       replicas = mkOption {
@@ -317,10 +317,11 @@ ${config.extraConfig}
                   mountPath = "/etc/rippled-init";
                 }];
               }];
+              securityContext.fsGroup = 1000;
               containers.rippled = {
                 image = config.image;
                 imagePullPolicy = "Always";
-                command = ["/opt/ripple/bin/rippled" "--conf" "/etc/rippled/rippled.conf"] ++
+                command = ["rippled" "--conf" "/etc/rippled/rippled.conf"] ++
                   (optionals (config.autovalidator.enable) ["-a" "--start"]);
 
                 resources.requests = resources.${config.nodeSize};
@@ -328,7 +329,7 @@ ${config.extraConfig}
 
                 readinessProbe = {
                   exec.command = ["/bin/sh" "-c" ''
-                    /opt/ripple/bin/rippled server_info | grep complete_ledgers | grep -v empty
+                    rippled server_info | grep complete_ledgers | grep -v empty
                   ''];
                   initialDelaySeconds = 60;
                   periodSeconds = 30;
@@ -348,9 +349,9 @@ ${config.extraConfig}
               containers.autovalidator = mkIf config.autovalidator.enable {
                 image = config.image;
                 imagePullPolicy = "Always";
-                command = ["/bin/sh" "-c" ''
+                command = ["sh" "-c" ''
                   while true; do
-                    /opt/ripple/bin/rippled ledger_accept
+                    rippled ledger_accept
                     sleep ${toString config.autovalidator.validationInterval}
                   done
                 ''];
