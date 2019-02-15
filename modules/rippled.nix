@@ -315,8 +315,7 @@ ${config.extraConfig}
                   ''}
                   ${optionalString (config.cluster.enable) ''
                   echo "[node_seed]" >> /etc/rippled/rippled.conf
-                  [[ `hostname` =~ -([0-9]+)$ ]] || exit 1
-                  ORDINAL=''${BASH_REMATCH[1]}
+                  ORDINAL=''${HOSTNAME##*-}
                   cat /node-seed/token-''$ORDINAL >> /etc/rippled/rippled.conf;
                   ''}
                 ''];
@@ -326,7 +325,10 @@ ${config.extraConfig}
                 } {
                   name = "config-init";
                   mountPath = "/etc/rippled-init";
-                }];
+                }] ++ (optionals config.cluster.enable [{
+                  name = "node-seed";
+                  mountPath = "/node-seed";
+                }]);
               }];
               securityContext.fsGroup = 1000;
               containers.rippled = {
@@ -352,10 +354,7 @@ ${config.extraConfig}
                 } {
                   name = "storage";
                   mountPath = "/data";
-                }] ++ (optionals config.cluster.enable [{
-                  name = "node-seed";
-                  mountPath = "/node-seed";
-                }]);
+                }];
               };
               containers.autovalidator = mkIf config.autovalidator.enable {
                 image = config.image;
