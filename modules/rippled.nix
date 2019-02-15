@@ -340,7 +340,7 @@ ${config.extraConfig}
 
                 readinessProbe = {
                   exec.command = ["/bin/sh" "-c" ''
-                    rippled server_info | grep complete_ledgers | grep -v empty
+                    rippled --conf /etc/rippled/rippled.conf server_info | grep complete_ledgers | grep -v empty
                   ''];
                   initialDelaySeconds = 60;
                   periodSeconds = 30;
@@ -362,7 +362,7 @@ ${config.extraConfig}
                 imagePullPolicy = "Always";
                 command = ["sh" "-c" ''
                   while true; do
-                    rippled ledger_accept
+                    rippled --conf /etc/rippled/rippled.conf ledger_accept
                     sleep ${toString config.autovalidator.validationInterval}
                   done
                 ''];
