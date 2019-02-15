@@ -339,10 +339,10 @@ ${config.extraConfig}
                 } {
                   name = "storage";
                   mountPath = "/data";
-                }  {
-                  name = "nodeSeed";
+                }] ++ (optionals config.cluster.enable [{
+                  name = "node-seed";
                   mountPath = "/node-seed";
-                }];
+                }]);
               };
               containers.autovalidator = mkIf config.autovalidator.enable {
                 image = config.image;
@@ -360,7 +360,7 @@ ${config.extraConfig}
                   name = "${name}-config";
                 };
                 config.emptyDir = {};
-                nodeSeed.secret.secretName = config.cluster.nodeSeedSecret;
+                node-seed.secret.secretName = mkIf config.cluster.enable (config.cluster.nodeSeedSecret);
               };
             };
           };
