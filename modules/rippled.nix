@@ -296,6 +296,7 @@ ${config.extraConfig}
                   RIPPLE_VALIDATOR_TOKEN = mkIf config.validator.enable (secretToEnv config.validator.token);
                 };
                 command = ["sh" "-c" ''
+                  cp /etc/rippled-init/validators.txt /etc/rippled/validators.txt
                   cp /etc/rippled-init/rippled.conf /etc/rippled/rippled.conf
                   ${optionalString (config.validator.enable) ''
                   echo "[validator_token]" >> /etc/rippled/rippled.conf
