@@ -366,6 +366,10 @@ ${config.extraConfig}
                     sleep ${toString config.autovalidator.validationInterval}
                   done
                 ''];
+                volumeMounts = [{
+                  name = "config";
+                  mountPath = "/etc/rippled";
+                }];
               };
               volumes = {
                 config-init.configMap = {
