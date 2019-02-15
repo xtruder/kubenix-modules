@@ -6,7 +6,7 @@ images.buildImageForPackage {
   package = rippled;
 
   config = {
-    Entrypoint = "/bin/rippled";
+    Cmd = ["/bin/rippled"];
     User = "app";
     Env = [
       "PATH=/bin"
