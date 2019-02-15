@@ -360,8 +360,9 @@ ${config.extraConfig}
                   name = "${name}-config";
                 };
                 config.emptyDir = {};
-                node-seed.secret.secretName = mkIf config.cluster.enable (config.cluster.nodeSeedSecret);
-              };
+              } // (optionalAttrs (config.cluster.enable) {
+                node-seed.secret.secretName = config.cluster.nodeSeedSecret;
+              });
             };
           };
           volumeClaimTemplates = [{
