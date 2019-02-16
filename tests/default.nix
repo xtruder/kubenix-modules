@@ -60,4 +60,5 @@ in {
   ambassador = buildTest ./ambassador.nix {};
   ilp-connector = buildTest ./ilp-connector.nix {};
   metabase = buildTest ./metabase.nix {};
+  locust = buildTest ./locust.nix {};
 }
