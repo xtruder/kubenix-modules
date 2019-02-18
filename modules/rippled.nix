@@ -399,23 +399,21 @@ ${config.extraConfig}
         data."validators.txt" = builtins.readFile config.validatorFile;
       };
 
-      kubernetes.resources.services = (mkMerge (map(i: {
-        "${module.name}-${toString i}" = {
-          metadata.name = "${module.name}-${toString i}";
-          metadata.labels.name = module.name;
-          spec = {
-            type = "ClusterIP";
-            selector = {
-              app = "${module.name}";
-              "statefulset.kubernetes.io/pod-name" = "${module.name}-${toString i}";
-            };
-            ports = [{
-              name = "p2p";
-              port = 32238;
-            }];
+      kubernetes.resources.services = ((listToAttrs (map(i: (nameValuePair "${module.name}-${toString i}" {
+        metadata.name = "${module.name}-${toString i}";
+        metadata.labels.name = module.name;
+        spec = {
+          type = "ClusterIP";
+          selector = {
+            app = "${module.name}";
+            "statefulset.kubernetes.io/pod-name" = "${module.name}-${toString i}";
           };
+          ports = [{
+            name = "p2p";
+            port = 32238;
+          }];
         };
-      }) (range 0 (config.replicas - 1)))) // (optionalAttrs (config.peerPort != null) {
+      })) (range 0 (config.replicas - 1)))) // (optionalAttrs (config.peerPort != null) {
         "${module.name}" = {
           metadata.name = name;
           metadata.labels.app = name;
@@ -436,7 +434,7 @@ ${config.extraConfig}
             }];
           };
         };
-      });
+      }));
 
       kubernetes.resources.podDisruptionBudgets.rippled = {
         metadata.name = name;
