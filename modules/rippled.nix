@@ -14,7 +14,7 @@ port_ws_public
 
 [port_peer]
 ip=0.0.0.0
-port=${toString config.peerPort}
+port=32238
 protocol=peer
 admin=127.0.0.1
 
@@ -209,8 +209,8 @@ ${config.extraConfig}
 
       peerPort = mkOption {
         description = "Rippled peer port";
-        default = 32235;
-        type = types.int;
+        default = null;
+        type = types.nullOr types.int;
       };
 
       logLevel = mkOption {
@@ -399,8 +399,24 @@ ${config.extraConfig}
         data."validators.txt" = builtins.readFile config.validatorFile;
       };
 
-      kubernetes.resources.services = mkMerge ([{
-        rippled = {
+      kubernetes.resources.services = (mkMerge (map(i: {
+        "${module.name}-${toString i}" = {
+          metadata.name = "${module.name}-${toString i}";
+          metadata.labels.name = module.name;
+          spec = {
+            type = "ClusterIP";
+            selector = {
+              app = "${module.name}";
+              "statefulset.kubernetes.io/pod-name" = "${module.name}-${toString i}";
+            };
+            ports = [{
+              name = "p2p";
+              port = 32238;
+            }];
+          };
+        };
+      }) (range 0 (config.replicas - 1)))) // (optionalAttrs (config.peerPort != null) {
+        "${module.name}" = {
           metadata.name = name;
           metadata.labels.app = name;
           spec = {
@@ -415,28 +431,12 @@ ${config.extraConfig}
               targetPort = 5006;
             } {
               name = "p2p";
-              port = config.peerPort;
+              port = 32238;
               nodePort = config.peerPort;
             }];
           };
         };
-      }] ++ (map(i: {
-        "${module.name}-${toString i}" = {
-          metadata.name = "${module.name}-${toString i}";
-          metadata.labels.name = module.name;
-          spec = {
-            type = "ClusterIP";
-            selector = {
-              app = "${module.name}";
-              "statefulset.kubernetes.io/pod-name" = "${module.name}-${toString i}";
-            };
-            ports = [ {
-              name = "p2p";
-              port = config.peerPort;
-            }];
-          };
-        };
-      }) (range 0 (config.replicas - 1))));
+      });
 
       kubernetes.resources.podDisruptionBudgets.rippled = {
         metadata.name = name;
