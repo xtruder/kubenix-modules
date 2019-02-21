@@ -1,84 +1,92 @@
-{ config, lib, k8s, ... }:
+{ config, name, kubenix, k8s, ...}:
 
 with lib;
+with k8s;
 
 {
-  config.kubernetes.moduleDefinitions.secret-restart-controller.module = {name, config, module, ...}: {
-    options = {
-      image = mkOption {
-        description = "Name of the secret-restart-controller image to use";
-        type = types.str;
-        default = "xtruder/k8s-secret-restart-controller";
-      };
+  imports = [
+    kubenix.k8s
+  ];
 
-      namespace = mkOption {
-        description = "Namespace where to run secret restart controller (if null in all namespaces)";
-        type = types.nullOr types.str;
-        default = module.namespace;
-      };
+  options.args = {
+    image = mkOption {
+      description = "Name of the secret-restart-controller image to use";
+      type = types.str;
+      default = "xtruder/k8s-secret-restart-controller";
     };
 
-    config = {
-      kubernetes.resources.deployments.secret-restart-controller = {
-        metadata.name = name;
-        metadata.labels.app = name;
-        spec = {
-          selector.matchLabels.app = name;
-          template = {
-            metadata.labels.app = name;
-            spec = {
-              serviceAccountName = "secret-restart-controller";
-              containers.secret-restart-controller = {
-                image = config.image;
-                command = [
-                  "/bin/k8s-secret-restart-controller"
-                  "-logtostderr"
-                ] ++ optionals (config.namespace != null) [
-                  "-namespace"
-                  "$(POD_NAMESPACE)"
-                ];
-                resources.requests = {
-                  cpu = "50m";
-                  memory = "100Mi";
-                };
+    namespace = mkOption {
+      description = "Namespace where to run secret restart controller (if null in all namespaces)";
+      type = types.nullOr types.str;
+      default = module.namespace;
+    };
+  };
+
+  config = {
+    submodule = {
+      name = "secret-restart-controller";
+      version = "1.0.0";
+      description = "";
+    };
+    kubernetes.api.deployments.secret-restart-controller = {
+      metadata.name = name;
+      metadata.labels.app = name;
+      spec = {
+        selector.matchLabels.app = name;
+        template = {
+          metadata.labels.app = name;
+          spec = {
+            serviceAccountName = "secret-restart-controller";
+            containers.secret-restart-controller = {
+              image = config.args.image;
+              command = [
+                "/bin/k8s-secret-restart-controller"
+                "-logtostderr"
+              ] ++ optionals (config.args.namespace != null) [
+                "-namespace"
+                "$(POD_NAMESPACE)"
+              ];
+              resources.requests = {
+                cpu = "50m";
+                memory = "100Mi";
               };
             };
           };
         };
       };
-      kubernetes.resources.serviceAccounts.secret-restart-controller = {
-        metadata.name = name;
-        metadata.labels.app = name;
+    };
+    kubernetes.api.serviceaccounts.secret-restart-controller = {
+      metadata.name = name;
+      metadata.labels.app = name;
+    };
+    kubernetes.api.clusterroles.secret-restart-controller = {
+      apiVersion = "rbac.authorization.k8s.io/v1beta1";
+      metadata.name = name;
+      metadata.labels.app = name;
+      rules = [{
+        apiGroups = [""];
+        resources = ["secrets" "pods"];
+        verbs = ["get" "list" "watch"];
+      } {
+        apiGroups = [""];
+        resources = ["pods/eviction"];
+        verbs = ["create"];
+      }];
+    };
+    kubernetes.api.clusterrolebindings.secret-restart-controller = {
+      apiVersion = "rbac.authorization.k8s.io/v1beta1";
+      metadata.name = name;
+      metadata.labels.app = name;
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = name;
       };
-      kubernetes.resources.clusterRoles.secret-restart-controller = {
-        apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
-        metadata.labels.app = name;
-        rules = [{
-          apiGroups = [""];
-          resources = ["secrets" "pods"];
-          verbs = ["get" "list" "watch"];
-        } {
-          apiGroups = [""];
-          resources = ["pods/eviction"];
-          verbs = ["create"];
-        }];
-      };
-      kubernetes.resources.clusterRoleBindings.secret-restart-controller = {
-        apiVersion = "rbac.authorization.k8s.io/v1beta1";
-        metadata.name = name;
-        metadata.labels.app = name;
-        roleRef = {
-          apiGroup = "rbac.authorization.k8s.io";
-          kind = "ClusterRole";
-          name = name;
-        };
-        subjects = [{
-          kind = "ServiceAccount";
-          name = name;
-          namespace = module.namespace;
-        }];
-      };
+      subjects = [{
+        kind = "ServiceAccount";
+        name = name;
+        namespace = module.namespace;
+      }];
     };
   };
 }

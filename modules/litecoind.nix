@@ -1,7 +1,7 @@
-{ config, lib, k8s, ... }:
+{ config, name, kubenix, k8s, ...}:
 
-with k8s;
 with lib;
+with k8s;
 
 let
   b2s = value: if value then "1" else "0";
@@ -15,10 +15,10 @@ in {
       # Network-related settings:
 
       # Run on the test network instead of the real litecoin network
-      testnet=${b2s config.testnet}
+      testnet=${b2s config.args.testnet}
 
       # Run a regression test network
-      regtest=${b2s config.regtest}
+      regtest=${b2s config.args.regtest}
 
       # Connect via a SOCKS5 proxy
       #proxy=127.0.0.1:9050
@@ -48,7 +48,7 @@ in {
       #
 
       # server=1 tells Litecoin-Qt and litecoind to accept JSON-RPC commands
-      server=${b2s config.server}
+      server=${b2s config.args.server}
 
       # Bind to given address to listen for JSON-RPC connections. Use [host]:port notation for IPv6.
       # This option can be specified multiple times (default: bind to all interfaces)
@@ -80,7 +80,7 @@ in {
       # rpcauth=bob:b2dd077cb54591a2f3139e69a897ac$4e71f08d48b4347cf8eff3815c0e25ae2e9a4340474079f55705f40574f4ec99
 
       # Authentication
-      rpcauth=${toString config.rpcAuth}
+      rpcauth=${toString config.args.rpcAuth}
 
       # How many seconds litecoin will wait for a complete RPC HTTP request.
       # after the HTTP connection is established. 
@@ -140,164 +140,173 @@ in {
       # Index all the transactions
       txindex=1
     '';
-  in {
-    options = {
-      image = mkOption {
-        description = "Name of the litecoind image to use";
+  in 
+{
+  imports = [
+    kubenix.k8s
+  ];
+
+  options.args = {
+    image = mkOption {
+      description = "Name of the litecoind image to use";
+      type = types.str;
+      default = "uphold/litecoin-core";
+    };
+
+    replicas = mkOption {
+      description = "Number of litecoind replicas";
+      type = types.int;
+      default = 1;
+    };
+
+    server = mkOption {
+      description = "Whether to enable RPC server";
+      default = true;
+      type = types.bool;
+    };
+
+    testnet = mkOption {
+      description = "Whether to run in testnet mode";
+      default = true;
+      type = types.bool;
+    };
+
+    regtest = mkOption {
+      description = "Whether to run in regtest mode";
+      default = false;
+      type = types.bool;
+    };
+
+    rpcAuth = mkOption {
+      description = "Rpc auth. The field comes in the format: <USERNAME>:<SALT>$<HASH>";
+      type = types.str;
+    };
+
+    storage = {
+      class = mkOption {
+        description = "Name of the storage class to use";
+        type = types.nullOr types.str;
+        default = null;
+      };
+
+      size = mkOption {
+        description = "Storage size";
         type = types.str;
-        default = "uphold/litecoin-core";
+        default = if config.args.testnet || config.args.regtest then "30Gi" else "250Gi";
       };
+    };
+  };
 
-      replicas = mkOption {
-        description = "Number of litecoind replicas";
-        type = types.int;
-        default = 1;
-      };
+  config = {
+    submodule = {
+      name = "litecoind";
+      version = "1.0.0";
+      description = "";
+    };
+    kubernetes.api.statefulsets.litecoind = {
+      metadata.name = name;
+      metadata.labels.app = name;
+      spec = {
+        replicas = config.args.replicas;
+        serviceName = name;
+        podManagementPolicy = "Parallel";
+        template = {
+          metadata.labels.app = name;
+          spec = {
+            initContainers = [{
+              name = "copy-litecoind-config";
+              image = "busybox";
+              command = ["sh" "-c" "cp /config/litecoin.conf /home/litecoin/.litecoin/litecoin.conf"];
+              volumeMounts = [{
+                name = "config";
+                mountPath = "/config";
+              } {
+                name = "data";
+                mountPath = "/home/litecoin/.litecoin/";
+              }];
+            }];
+            containers.litecoind = {
+              image = config.args.image;
 
-      server = mkOption {
-        description = "Whether to enable RPC server";
-        default = true;
-        type = types.bool;
-      };
+              volumeMounts = [{
+                name = "data";
+                mountPath = "/home/litecoin/.litecoin/";
+              }];
 
-      testnet = mkOption {
-        description = "Whether to run in testnet mode";
-        default = true;
-        type = types.bool;
-      };
+              resources.requests = {
+                cpu = "1000m";
+                memory = "2048Mi";
+              };
+              resources.limits = {
+                cpu = "1000m";
+                memory = "2048Mi";
+              };
 
-      regtest = mkOption {
-        description = "Whether to run in regtest mode";
-        default = false;
-        type = types.bool;
-      };
-
-      rpcAuth = mkOption {
-        description = "Rpc auth. The field comes in the format: <USERNAME>:<SALT>$<HASH>";
-        type = types.str;
-      };
-
-      storage = {
-        class = mkOption {
-          description = "Name of the storage class to use";
-          type = types.nullOr types.str;
-          default = null;
+              ports = [{
+                name = "rpc-mainnet";
+                containerPort = 9332;
+              } {
+                name = "rpc-testnet";
+                containerPort = 19332;
+              } {
+                name = "rpc-regtest";
+                containerPort = 19444;
+              } {
+                name = "p2p-mainnet";
+                containerPort = 9333;
+              } {
+                name = "p2p-testnet";
+                containerPort = 19333;
+              }];
+            };
+            volumes.config.configMap.name = "${name}-config";
+          };
         };
-
-        size = mkOption {
-          description = "Storage size";
-          type = types.str;
-          default = if config.testnet || config.regtest then "30Gi" else "250Gi";
-        };
+        volumeClaimTemplates = [{
+          metadata.name = "data";
+          spec = {
+            accessModes = ["ReadWriteOnce"];
+            storageClassName = mkIf (config.args.storage.class != null) config.args.storage.class;
+            resources.requests.storage = config.args.storage.size;
+          };
+        }];
       };
     };
 
-    config = {
-      kubernetes.resources.statefulSets.litecoind = {
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
-        spec = {
-          replicas = config.replicas;
-          serviceName = module.name;
-          podManagementPolicy = "Parallel";
-          template = {
-            metadata.labels.app = module.name;
-            spec = {
-              initContainers = [{
-                name = "copy-litecoind-config";
-                image = "busybox";
-                command = ["sh" "-c" "cp /config/litecoin.conf /home/litecoin/.litecoin/litecoin.conf"];
-                volumeMounts = [{
-                  name = "config";
-                  mountPath = "/config";
-                } {
-                  name = "data";
-                  mountPath = "/home/litecoin/.litecoin/";
-                }];
-              }];
-              containers.litecoind = {
-                image = config.image;
+    kubernetes.api.configmaps.litecoind = {
+      metadata.name = "${name}-config";
+      data."litecoin.conf" = litecoindConfig;
+    };
 
-                volumeMounts = [{
-                  name = "data";
-                  mountPath = "/home/litecoin/.litecoin/";
-                }];
-
-                resources.requests = {
-                  cpu = "1000m";
-                  memory = "2048Mi";
-                };
-                resources.limits = {
-                  cpu = "1000m";
-                  memory = "2048Mi";
-                };
-
-                ports = [{
-                  name = "rpc-mainnet";
-                  containerPort = 9332;
-                } {
-                  name = "rpc-testnet";
-                  containerPort = 19332;
-                } {
-                  name = "rpc-regtest";
-                  containerPort = 19444;
-                } {
-                  name = "p2p-mainnet";
-                  containerPort = 9333;
-                } {
-                  name = "p2p-testnet";
-                  containerPort = 19333;
-                }];
-              };
-              volumes.config.configMap.name = "${module.name}-config";
-            };
-          };
-          volumeClaimTemplates = [{
-            metadata.name = "data";
-            spec = {
-              accessModes = ["ReadWriteOnce"];
-              storageClassName = mkIf (config.storage.class != null) config.storage.class;
-              resources.requests.storage = config.storage.size;
-            };
-          }];
-        };
+    kubernetes.api.services.litecoind = {
+      metadata.name = name;
+      metadata.labels.app = name;
+      spec = {
+        selector.app = name;
+        ports = [{
+          name = "rpc-mainnet";
+          port = 9332;
+        } {
+          name = "rpc-testnet";
+          port = 19332;
+        } {
+          name = "rpc-regtest";
+          port = 19444;
+        } {
+          name = "p2p-mainnet";
+          port = 9333;
+        } {
+          name = "p2p-testnet";
+          port = 19333;
+        }];
       };
+    };
 
-      kubernetes.resources.configMaps.litecoind = {
-        metadata.name = "${module.name}-config";
-        data."litecoin.conf" = litecoindConfig;
-      };
-
-      kubernetes.resources.services.litecoind = {
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
-        spec = {
-          selector.app = module.name;
-          ports = [{
-            name = "rpc-mainnet";
-            port = 9332;
-          } {
-            name = "rpc-testnet";
-            port = 19332;
-          } {
-            name = "rpc-regtest";
-            port = 19444;
-          } {
-            name = "p2p-mainnet";
-            port = 9333;
-          } {
-            name = "p2p-testnet";
-            port = 19333;
-          }];
-        };
-      };
-
-      kubernetes.resources.podDisruptionBudgets.litecoind = {
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
-        spec.maxUnavailable = 1;
-        spec.selector.matchLabels.app = module.name;
-      };
+    kubernetes.api.poddisruptionbudgets.litecoind = {
+      metadata.name = name;
+      metadata.labels.app = name;
+      spec.maxUnavailable = 1;
+      spec.selector.matchLabels.app = name;
     };
   };
 }

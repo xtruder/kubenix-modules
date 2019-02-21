@@ -1,106 +1,113 @@
-{ config, lib, k8s, images, ... }:
+{ config, name, kubenix, k8s, ...}:
 
 with lib;
 with k8s;
 
 {
-  config.kubernetes.moduleDefinitions.ksql.module = {config, module, ...}: {
-    options = {
-      image = mkOption {
-        description = "Ksql image to use";
-        type = types.str;
-        default = config.kubernetes.dockerRegistry + "/${images.ksql.image.fullName}";
-      };
+  imports = [
+    kubenix.k8s
+  ];
 
-      replicas = mkOption {
-        description = "Number of ksql replicas to run";
-        type = types.int;
-        default = 3;
-      };
+  options.args = {
+    image = mkOption {
+      description = "Ksql image to use";
+      type = types.str;
+      default = config.args.kubernetes.dockerRegistry + "/${images.ksql.image.fullName}";
+    };
 
-      bootstrap = {
-        servers = mkOption {
-          description = "Kafka bootstrap servers";
-          type = types.listOf types.str;
-          default = ["kafka-0.kafka:9093" "kafka-1.kafka:9093" "kafka-2.kafka:9093"];
-        };
-      };
+    replicas = mkOption {
+      description = "Number of ksql replicas to run";
+      type = types.int;
+      default = 3;
+    };
 
-      opts = mkOption {
-        description = "Kafka options";
-        type = types.attrs;
+    bootstrap = {
+      servers = mkOption {
+        description = "Kafka bootstrap servers";
+        type = types.listOf types.str;
+        default = ["kafka-0.kafka:9093" "kafka-1.kafka:9093" "kafka-2.kafka:9093"];
       };
     };
 
-    config = {
-      opts = {
-        "bootstrap.servers" = concatStringsSep "," config.bootstrap.servers;
-        listeners = "PLAINTEXT://0.0.0.0.${module.name}:8088";
-        "ui.enabled" = true;
-        "ksql.streams.replication.factor" = 3;
-        "ksql.sink.replicas" = 3;
-        "ksql.streams.state.dir" = "/data";
-      };
+    opts = mkOption {
+      description = "Kafka options";
+      type = types.attrs;
+    };
+  };
 
-      kubernetes.resources.statefulSets.ksql = {
-        spec = {
-          serviceName = module.name;
-          replicas = config.replicas;
-          podManagementPolicy = "Parallel";
-          template = {
-            metadata.labels.app = module.name;
-            spec = {
-              containers.ksql = {
-                image = config.image;
-                imagePullPolicy = "Always";
-                resources.requests = {
-                  memory = "1Gi";
-                  cpu = "500m";
-                };
-                ports = [{
-                  containerPort = 8088;
-                  name = "server";
-                }];
-                command = ["/bin/ksql-server-start" "/etc/ksql/ksql-server.properties"];
-                env = {
-                  JMX_PORT.value = "1099"; # expose metrics
-                  KSQL_OPTS = concatStringsSep " " (mapAttrsToList (name: value:
-                    "-D${name}=${
-                      if isBool value then
-                      if value then "true" else "false"
-                      else toString value
-                    }"
-                  ) config.opts); # define options
-                };
-                volumeMounts = [{
-                  name = "datadir";
-                  mountPath = "/data";
-                }];
+  config = {
+    submodule = {
+      name = "ksql";
+      version = "1.0.0";
+      description = "";
+    };
+    opts = {
+      "bootstrap.servers" = concatStringsSep "," config.args.bootstrap.servers;
+      listeners = "PLAINTEXT://0.0.0.0.${name}:8088";
+      "ui.enabled" = true;
+      "ksql.streams.replication.factor" = 3;
+      "ksql.sink.replicas" = 3;
+      "ksql.streams.state.dir" = "/data";
+    };
+
+    kubernetes.api.statefulsets.ksql = {
+      spec = {
+        serviceName = name;
+        replicas = config.args.replicas;
+        podManagementPolicy = "Parallel";
+        template = {
+          metadata.labels.app = name;
+          spec = {
+            containers.ksql = {
+              image = config.args.image;
+              imagePullPolicy = "Always";
+              resources.requests = {
+                memory = "1Gi";
+                cpu = "500m";
               };
+              ports = [{
+                containerPort = 8088;
+                name = "server";
+              }];
+              command = ["/bin/ksql-server-start" "/etc/ksql/ksql-server.properties"];
+              env = {
+                JMX_PORT.value = "1099"; # expose metrics
+                KSQL_OPTS = concatStringsSep " " (mapAttrsToList (name: value:
+                  "-D${name}=${
+                    if isBool value then
+                    if value then "true" else "false"
+                    else toString value
+                  }"
+                ) config.opts); # define options
+              };
+              volumeMounts = [{
+                name = "datadir";
+                mountPath = "/data";
+              }];
             };
           };
-          volumeClaimTemplates = [{
-            metadata.name = "datadir";
-            spec = {
-              accessModes = ["ReadWriteOnce"];
-              resources.requests.storage = "10Gi";
-            };
-          }];
         };
+        volumeClaimTemplates = [{
+          metadata.name = "datadir";
+          spec = {
+            accessModes = ["ReadWriteOnce"];
+            resources.requests.storage = "10Gi";
+          };
+        }];
       };
+    };
 
-      kubernetes.resources.services.ksql = {
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
+    kubernetes.api.services.ksql = {
+      metadata.name = name;
+      metadata.labels.app = name;
 
-        spec = {
-          clusterIP = "None";
-          ports = [{
-            port = 8088;
-            name = "server";
-          }];
-          selector.app = module.name;
-        };
+      spec = {
+        clusterIP = "None";
+        ports = [{
+          port = 8088;
+          name = "server";
+        }];
+        selector.app = name;
       };
     };
   };

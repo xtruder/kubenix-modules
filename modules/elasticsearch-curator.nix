@@ -1,132 +1,139 @@
-{ config, lib, k8s, pkgs, ... }:
+{ config, name, kubenix, k8s, ...}:
 
-with k8s;
 with lib;
+with k8s;
 
 {
-  config.kubernetes.moduleDefinitions.elasticsearch-curator.module = {name, config, ...}: {
-    options = {
-      image = mkOption {
-        description = "Elasticsearc image";
-        type = types.str;
-        default = "bobrik/curator:5.4.0";
-      };
+  imports = [
+    kubenix.k8s
+  ];
 
-      hosts = mkOption {
-        description = "Elasticsearch hosts";
-        default = ["elasticsearch"];
-        type = types.listOf types.str;
-      };
+  options.args = {
+    image = mkOption {
+      description = "Elasticsearc image";
+      type = types.str;
+      default = "bobrik/curator:5.4.0";
+    };
 
-      port = mkOption {
-        description = "Elasticsearch port";
-        default = 9200;
-        type = types.int;
-      };
+    hosts = mkOption {
+      description = "Elasticsearch hosts";
+      default = ["elasticsearch"];
+      type = types.listOf types.str;
+    };
 
-      ssl = mkOption {
-        description = "Whether currator should use ssl or not";
-        default = false;
-        type = types.bool;
-      };
+    port = mkOption {
+      description = "Elasticsearch port";
+      default = 9200;
+      type = types.int;
+    };
 
-      username = mkOption {
-        description = "Simple auth username";
-        default = null;
+    ssl = mkOption {
+      description = "Whether currator should use ssl or not";
+      default = false;
+      type = types.bool;
+    };
+
+    username = mkOption {
+      description = "Simple auth username";
+      default = null;
+      type = types.nullOr types.str;
+    };
+
+    password = mkOption {
+      description = "Simple auth password";
+      default = null;
+      type = types.nullOr types.str;
+    };
+
+    aws = {
+      key = mkOption {
+        description = "Aws key";
         type = types.nullOr types.str;
-      };
-
-      password = mkOption {
-        description = "Simple auth password";
         default = null;
+      };
+
+      secretKey = mkOption {
+        description = "Aws secret key";
         type = types.nullOr types.str;
+        default = null;
       };
 
-      aws = {
-        key = mkOption {
-          description = "Aws key";
-          type = types.nullOr types.str;
-          default = null;
-        };
-
-        secretKey = mkOption {
-          description = "Aws secret key";
-          type = types.nullOr types.str;
-          default = null;
-        };
-
-        region = mkOption {
-          description = "Aws region";
-          type = types.nullOr types.str;
-          default = null;
-        };
-      };
-
-      schedule = mkOption {
-        description = "Curator job schedule";
-        type = types.str;
-        default = "* * * * *";
-      };
-
-      actions = mkOption {
-        description = "List of actions to run";
-        type = types.listOf types.attrs;
+      region = mkOption {
+        description = "Aws region";
+        type = types.nullOr types.str;
+        default = null;
       };
     };
 
-    config = {
-      kubernetes.resources.cronJobs.elasticsearch-curator = {
-        metadata.name = name;
-        spec = {
-          concurrencyPolicy = "Forbid";
-          schedule = config.schedule;
-          jobTemplate = {
-            spec.template = {
-              spec = {
-                containers.curator = {
-                  image = config.image;
-                  args = ["--config" "/etc/curator/config.yaml" "/etc/curator/actions.yaml"];
-                  volumeMounts = [{
-                    name = "config";
-                    mountPath = "/etc/curator";
-                  }];
-                  resources = {
-                    requests.memory = "256Mi";
-                    requests.cpu = "50m";
-                    limits.memory = "512Mi";
-                    limits.cpu = "50m";
-                  };
+    schedule = mkOption {
+      description = "Curator job schedule";
+      type = types.str;
+      default = "* * * * *";
+    };
+
+    actions = mkOption {
+      description = "List of actions to run";
+      type = types.listOf types.attrs;
+    };
+  };
+
+  config = {
+    submodule = {
+      name = "elasticsearch-curator";
+      version = "1.0.0";
+      description = "";
+    };
+    kubernetes.api.cronjobs.elasticsearch-curator = {
+      metadata.name = name;
+      spec = {
+        concurrencyPolicy = "Forbid";
+        schedule = config.args.schedule;
+        jobTemplate = {
+          spec.template = {
+            spec = {
+              containers.curator = {
+                image = config.args.image;
+                args = ["--config" "/etc/curator/config.args.yaml" "/etc/curator/actions.yaml"];
+                volumeMounts = [{
+                  name = "config";
+                  mountPath = "/etc/curator";
+                }];
+                resources = {
+                  requests.memory = "256Mi";
+                  requests.cpu = "50m";
+                  limits.memory = "512Mi";
+                  limits.cpu = "50m";
                 };
-                restartPolicy = "OnFailure";
-                volumes.config.configMap.name = name;
               };
+              restartPolicy = "OnFailure";
+              volumes.config.configMap.name = name;
             };
           };
         };
       };
+    };
 
-      kubernetes.resources.configMaps.curator = {
-        metadata.name = name;
-        data."config.yaml" = toYAML {
-          client = {
-            inherit (config) hosts port;
-            use_ssl = config.ssl;
-            aws_key = config.aws.key;
-            aws_secret_key = config.aws.secretKey;
-            aws_region = config.aws.region;
-          } // (optionalAttrs (config.username != null && config.password != null) {
-            http_auth = "${config.username}:${config.password}";
-          });
-          logging = {
-            loglevel = "INFO";
-            logformat = "json";
-          };
+    kubernetes.api.configmaps.curator = {
+      metadata.name = name;
+      data."config.yaml" = toYAML {
+        client = {
+          inherit (config) hosts port;
+          use_ssl = config.args.ssl;
+          aws_key = config.args.aws.key;
+          aws_secret_key = config.args.aws.secretKey;
+          aws_region = config.args.aws.region;
+        } // (optionalAttrs (config.args.username != null && config.args.password != null) {
+          http_auth = "${config.args.username}:${config.args.password}";
+        });
+        logging = {
+          loglevel = "INFO";
+          logformat = "json";
         };
-        data."actions.yaml" = toYAML {
-          actions = listToAttrs (imap (i: action:
-          nameValuePair (toString i) action
-          ) config.actions);
-        };
+      };
+      data."actions.yaml" = toYAML {
+        actions = listToAttrs (imap (i: action:
+        nameValuePair (toString i) action
+        ) config.args.actions);
       };
     };
   };

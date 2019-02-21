@@ -1,12 +1,11 @@
-{ config, lib, k8s, images, ... }:
+{ config, name, kubenix, k8s, ...}:
 
-with k8s;
 with lib;
+with k8s;
 
-{
-  config.kubernetes.moduleDefinitions.rippled.module = {config, module, ...}: let
-    name = module.name;
-    rippledConfig = ''
+let
+  name = name;
+  rippledConfig = ''
 [server]
 port_peer
 port_rpc
@@ -34,11 +33,11 @@ admin=127.0.0.1
 /data
 
 [node_db]
-type=${config.db.type}
+type=${config.args.db.type}
 path=/data
 compression=1
-${optionalString (config.onlineDelete != null)
-  "online_delete=${toString config.onlineDelete}"}
+${optionalString (config.args.onlineDelete != null)
+"online_delete=${toString config.args.onlineDelete}"}
 advisory_delete=0
 open_files=2000
 filter_bits=12
@@ -47,9 +46,9 @@ file_size_mb=8
 file_size_mult=2
 
 [ips]
-${concatStringsSep "\n" config.ips}
+${concatStringsSep "\n" config.args.ips}
 
-${optionalString (config.privatePeer) ''
+${optionalString (config.args.privatePeer) ''
 [peer_private]
 1
 ''}
@@ -57,22 +56,22 @@ ${optionalString (config.privatePeer) ''
 [validators_file]
 validators.txt
 
-${optionalString (config.validationSeed != null && !config.validator.enable) ''
+${optionalString (config.args.validationSeed != null && !config.args.validator.enable) ''
 [validation_seed]
-${config.validationSeed}
+${config.args.validationSeed}
 ''}
 
 [node_size]
-${config.nodeSize}
+${config.args.nodeSize}
 
 [ledger_history]
-${toString config.ledgerHistory}
+${toString config.args.ledgerHistory}
 
 [fetch_depth]
 full
 
 [validation_quorum]
-${toString config.validationQuorum}
+${toString config.args.validationQuorum}
 
 [sntp_servers]
 time.windows.com
@@ -81,219 +80,227 @@ time.nist.gov
 pool.ntp.org
 
 [rpc_startup]
-{ "command": "log_level", "severity": "${config.logLevel}"  }
+{ "command": "log_level", "severity": "${config.args.logLevel}"  }
 
-${optionalString (config.cluster.enable) ''
+${optionalString (config.args.cluster.enable) ''
 [ips_fixed]
-${concatStringsSep "\n" (map (v: v.host + " " + (toString v.port)) config.cluster.peers)}
+${concatStringsSep "\n" (map (v: v.host + " " + (toString v.port)) config.args.cluster.peers)}
 
 [cluster_nodes]
-${concatStringsSep "\n" (map (v: v.validationPublicKey + " " + v.name) config.cluster.peers)}
+${concatStringsSep "\n" (map (v: v.validationPublicKey + " " + v.name) config.args.cluster.peers)}
 ''}
 
-${config.extraConfig}
-  '';
+${config.args.extraConfig}
+'';
 
-  resources = {
-    tiny = {
-      cpu = "1000m";
-      memory = "1000Mi";
-    };
-
-    small = {
-      cpu = "4000m";
-      memory = "8000Mi";
-    };
-
-    medium = {
-      cpu = "6000m";
-      memory = "16000Mi";
-    };
-
-    huge = {
-      cpu = "7000m";
-      memory = "32000Mi";
-    };
+resources = {
+  tiny = {
+    cpu = "1000m";
+    memory = "1000Mi";
   };
 
-  in {
-    options = {
-      image = mkOption {
-        description = "Name of the rippled image to use";
+  small = {
+    cpu = "4000m";
+    memory = "8000Mi";
+  };
+
+  medium = {
+    cpu = "6000m";
+    memory = "16000Mi";
+  };
+
+  huge = {
+    cpu = "7000m";
+    memory = "32000Mi";
+  };
+};
+in {
+  imports = [
+    kubenix.k8s
+  ];
+
+  options.args = {
+    image = mkOption {
+      description = "Name of the rippled image to use";
+      type = types.str;
+      default = config.args.kubernetes.dockerRegistry + (builtins.unsafeDiscardStringContext "/${images.rippled.imageName}:${images.rippled.imageTag}");
+    };
+
+    replicas = mkOption {
+      description = "Number of nginx replicas";
+      type = types.int;
+      default = 1;
+    };
+
+    retentionTime = mkOption {
+      description = "Rippled average retention time in days";
+      type = types.int;
+      default = 1;
+    };
+
+    onlineDelete = mkOption {
+      description = "How much ledger history is kept";
+      type = types.nullOr types.int;
+      default =
+        if config.args.ledgerHistory == "full" then null
+        else config.args.ledgerHistory;
+    };
+
+    ledgerHistory = mkOption {
+      description = "How much history to fetch";
+      type = types.either (types.enum ["full"]) types.int;
+      # retention time * seconds in a day / 3.5s avg per block
+      default = toInt (head (splitString "." (toString (config.args.retentionTime * 86400 / 3.5))));
+    };
+
+    ips = mkOption {
+      description = "List of ips where to find other servers speaking ripple protocol";
+      type = types.listOf types.str;
+      default = ["r.ripple.com 51235"];
+    };
+
+    privatePeer = mkOption {
+      description = "Whether to keep the node as private (peers wont forward the IP )";
+      type = types.bool;
+      default = false;
+    };
+
+    validatorFile = mkOption {
+      description = "Rippled validator list file";
+      type = types.package;
+      default = builtins.fetchurl {
+        url = "https://ripple.com/validators.txt";
+        sha256 = "0lsnh7pclpxl627qlvjfqjac97z3glwjv9h08lqcr11bxb6rafdk";
+      };
+    };
+
+    db = {
+      type = mkOption {
+        description = "Type of the database used";
+        type = types.enum ["NuDB" "RocksDB"];
+        default = if config.args.validationSeed != null then "RocksDB" else "NuDB";
+      };
+    };
+
+    storage = {
+      size = mkOption {
+        description = "Rippled storage size";
+        # 12G(for NuDB) or 8G (for rocksdb) per day on average plus 10G extra
+        default = "${toString (config.args.retentionTime * (if config.args.db.type == "NuDB" then 12 else 8) + 10)}G";
         type = types.str;
-        default = config.kubernetes.dockerRegistry + (builtins.unsafeDiscardStringContext "/${images.rippled.imageName}:${images.rippled.imageTag}");
       };
 
-      replicas = mkOption {
-        description = "Number of nginx replicas";
-        type = types.int;
-        default = 1;
-      };
-
-      retentionTime = mkOption {
-        description = "Rippled average retention time in days";
-        type = types.int;
-        default = 1;
-      };
-
-      onlineDelete = mkOption {
-        description = "How much ledger history is kept";
-        type = types.nullOr types.int;
-        default =
-          if config.ledgerHistory == "full" then null
-          else config.ledgerHistory;
-      };
-
-      ledgerHistory = mkOption {
-        description = "How much history to fetch";
-        type = types.either (types.enum ["full"]) types.int;
-        # retention time * seconds in a day / 3.5s avg per block
-        default = toInt (head (splitString "." (toString (config.retentionTime * 86400 / 3.5))));
-      };
-
-      ips = mkOption {
-        description = "List of ips where to find other servers speaking ripple protocol";
-        type = types.listOf types.str;
-        default = ["r.ripple.com 51235"];
-      };
-
-      privatePeer = mkOption {
-        description = "Whether to keep the node as private (peers wont forward the IP )";
-        type = types.bool;
-        default = false;
-      };
-
-      validatorFile = mkOption {
-        description = "Rippled validator list file";
-        type = types.package;
-        default = builtins.fetchurl {
-          url = "https://ripple.com/validators.txt";
-          sha256 = "0lsnh7pclpxl627qlvjfqjac97z3glwjv9h08lqcr11bxb6rafdk";
-        };
-      };
-
-      db = {
-        type = mkOption {
-          description = "Type of the database used";
-          type = types.enum ["NuDB" "RocksDB"];
-          default = if config.validationSeed != null then "RocksDB" else "NuDB";
-        };
-      };
-
-      storage = {
-        size = mkOption {
-          description = "Rippled storage size";
-          # 12G(for NuDB) or 8G (for rocksdb) per day on average plus 10G extra
-          default = "${toString (config.retentionTime * (if config.db.type == "NuDB" then 12 else 8) + 10)}G";
-          type = types.str;
-        };
-
-        class = mkOption {
-          description = "Rippled storage class (should be ssd)";
-          default = null;
-          type = types.nullOr types.str;
-        };
-      };
-
-      nodeSize = mkOption {
-        description = "Rippled node size";
-        default = "low";
-        type = types.enum ["tiny" "low" "medium" "huge"];
-      };
-
-      validationSeed = mkOption {
-        description = "Rippled validation seed";
+      class = mkOption {
+        description = "Rippled storage class (should be ssd)";
         default = null;
         type = types.nullOr types.str;
       };
+    };
 
-      peerPort = mkOption {
-        description = "Rippled peer port";
-        default = null;
-        type = types.nullOr types.int;
-      };
+    nodeSize = mkOption {
+      description = "Rippled node size";
+      default = "low";
+      type = types.enum ["tiny" "low" "medium" "huge"];
+    };
 
-      logLevel = mkOption {
-        description = "Rippled log level";
-        type = types.enum ["fatal" "error" "warn" "info" "debug" "trace"];
-        default = "info";
-      };
+    validationSeed = mkOption {
+      description = "Rippled validation seed";
+      default = null;
+      type = types.nullOr types.str;
+    };
 
-      validationQuorum = mkOption {
-        description = "Rippled validation quorum";
+    peerPort = mkOption {
+      description = "Rippled peer port";
+      default = null;
+      type = types.nullOr types.int;
+    };
+
+    logLevel = mkOption {
+      description = "Rippled log level";
+      type = types.enum ["fatal" "error" "warn" "info" "debug" "trace"];
+      default = "info";
+    };
+
+    validationQuorum = mkOption {
+      description = "Rippled validation quorum";
+      type = types.int;
+      default = if config.args.autovalidator.enable then 1 else 3;
+    };
+
+    autovalidator = {
+      enable = mkEnableOption "auto validator";
+
+      validationInterval = mkOption {
+        description = "Auto validator validation interval in seconds";
         type = types.int;
-        default = if config.autovalidator.enable then 1 else 3;
-      };
-
-      autovalidator = {
-        enable = mkEnableOption "auto validator";
-
-        validationInterval = mkOption {
-          description = "Auto validator validation interval in seconds";
-          type = types.int;
-          default = 2;
-        };
-      };
-
-      validator = {
-        enable = mkEnableOption "validator";
-
-        token = mkSecretOption {
-          description = "Validator token to use for ledger validation";
-          default = {
-            key = "token";
-            name = "${module.name}-validator-token";
-          };
-        };
-      };
-
-      cluster = {
-        enable = mkEnableOption "cluster";
-
-        peers = mkOption {
-          description = "List of peers to form a cluster with";
-          type = types.listOf (types.submodule ({name, ...}: {
-            options = {
-              name = mkOption {
-                default = name;
-              };
-              host = mkOption {
-                description = "Peer's host address";
-                type = types.str;
-              };
-              port = mkOption {
-                description = "Peer's port";
-                type = types.int;
-                default = 32238;
-              };
-              validationPublicKey = mkOption {
-                description = "Peer's public validation key";
-              };
-            };
-          }));
-          default = [];
-        };
-
-        nodeSeedSecret = mkOption {
-          description = "";
-          default = "node-seed";
-        };
-      };
-
-      extraConfig = mkOption {
-        description = "Extra rippled config";
-        default = "";
-        type = types.lines;
+        default = 2;
       };
     };
 
-    config = {
-      kubernetes.resources.statefulSets.rippled = {
+    validator = {
+      enable = mkEnableOption "validator";
+
+      token = mkSecretOption {
+        description = "Validator token to use for ledger validation";
+        default = {
+          key = "token";
+          name = "${name}-validator-token";
+        };
+      };
+    };
+
+    cluster = {
+      enable = mkEnableOption "cluster";
+
+      peers = mkOption {
+        description = "List of peers to form a cluster with";
+        type = types.listOf (types.submodule ({name, ...}: {
+          options = {
+            name = mkOption {
+              default = name;
+            };
+            host = mkOption {
+              description = "Peer's host address";
+              type = types.str;
+            };
+            port = mkOption {
+              description = "Peer's port";
+              type = types.int;
+              default = 32238;
+            };
+            validationPublicKey = mkOption {
+              description = "Peer's public validation key";
+            };
+          };
+        }));
+        default = [];
+      };
+
+      nodeSeedSecret = mkOption {
+        description = "";
+        default = "node-seed";
+      };
+    };
+
+    extraConfig = mkOption {
+      description = "Extra rippled config";
+      default = "";
+      type = types.lines;
+    };
+  };
+
+  config = {
+    submodule = {
+      name = "rippled";
+      version = "1.0.0";
+      description = "";
+    };
+      kubernetes.api.statefulsets.rippled = {
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
           updateStrategy.type = "RollingUpdate";
-          replicas = config.replicas;
+          replicas = config.args.replicas;
           serviceName = name;
           podManagementPolicy = "Parallel";
           template = {
@@ -303,17 +310,17 @@ ${config.extraConfig}
                 name = "init-validator";
                 image = "busybox";
                 imagePullPolicy = "IfNotPresent";
-                env = mkIf config.validator.enable {
-                  RIPPLE_VALIDATOR_TOKEN = mkIf config.validator.enable (secretToEnv config.validator.token);
+                env = mkIf config.args.validator.enable {
+                  RIPPLE_VALIDATOR_TOKEN = mkIf config.args.validator.enable (secretToEnv config.args.validator.token);
                 };
                 command = ["sh" "-c" ''
                   cp /etc/rippled-init/validators.txt /etc/rippled/validators.txt
                   cp /etc/rippled-init/rippled.conf /etc/rippled/rippled.conf
-                  ${optionalString (config.validator.enable) ''
+                  ${optionalString (config.args.validator.enable) ''
                   echo "[validator_token]" >> /etc/rippled/rippled.conf
                   echo "$RIPPLE_VALIDATOR_TOKEN" >> /etc/rippled/rippled.conf
                   ''}
-                  ${optionalString (config.cluster.enable) ''
+                  ${optionalString (config.args.cluster.enable) ''
                   echo "[node_seed]" >> /etc/rippled/rippled.conf
                   ORDINAL=''${HOSTNAME##*-}
                   cat /node-seed/token-''$ORDINAL >> /etc/rippled/rippled.conf;
@@ -325,20 +332,20 @@ ${config.extraConfig}
                 } {
                   name = "config-init";
                   mountPath = "/etc/rippled-init";
-                }] ++ (optionals config.cluster.enable [{
+                }] ++ (optionals config.args.cluster.enable [{
                   name = "node-seed";
                   mountPath = "/node-seed";
                 }]);
               }];
               securityContext.fsGroup = 1000;
               containers.rippled = {
-                image = config.image;
+                image = config.args.image;
                 imagePullPolicy = "Always";
                 command = ["rippled" "--conf" "/etc/rippled/rippled.conf"] ++
-                  (optionals (config.autovalidator.enable) ["-a" "--start"]);
+                  (optionals (config.args.autovalidator.enable) ["-a" "--start"]);
 
-                resources.requests = resources.${config.nodeSize};
-                resources.limits = resources.${config.nodeSize};
+                resources.requests = resources.${config.args.nodeSize};
+                resources.limits = resources.${config.args.nodeSize};
 
                 readinessProbe = {
                   exec.command = ["/bin/sh" "-c" ''
@@ -356,13 +363,13 @@ ${config.extraConfig}
                   mountPath = "/data";
                 }];
               };
-              containers.autovalidator = mkIf config.autovalidator.enable {
-                image = config.image;
+              containers.autovalidator = mkIf config.args.autovalidator.enable {
+                image = config.args.image;
                 imagePullPolicy = "Always";
                 command = ["sh" "-c" ''
                   while true; do
                     rippled --conf /etc/rippled/rippled.conf ledger_accept
-                    sleep ${toString config.autovalidator.validationInterval}
+                    sleep ${toString config.args.autovalidator.validationInterval}
                   done
                 ''];
                 volumeMounts = [{
@@ -376,8 +383,8 @@ ${config.extraConfig}
                   name = "${name}-config";
                 };
                 config.emptyDir = {};
-              } // (optionalAttrs (config.cluster.enable) {
-                node-seed.secret.secretName = config.cluster.nodeSeedSecret;
+              } // (optionalAttrs (config.args.cluster.enable) {
+                node-seed.secret.secretName = config.args.cluster.nodeSeedSecret;
               });
             };
           };
@@ -385,28 +392,28 @@ ${config.extraConfig}
             metadata.name = "storage";
             spec = {
               accessModes = ["ReadWriteOnce"];
-              resources.requests.storage = config.storage.size;
-              storageClassName = mkIf (config.storage.class != null)
-                config.storage.class;
+              resources.requests.storage = config.args.storage.size;
+              storageClassName = mkIf (config.args.storage.class != null)
+                config.args.storage.class;
             };
           }];
         };
       };
 
-      kubernetes.resources.configMaps.rippled = {
+      kubernetes.api.configmaps.rippled = {
         metadata.name = "${name}-config";
         data."rippled.conf" = rippledConfig;
-        data."validators.txt" = builtins.readFile config.validatorFile;
+        data."validators.txt" = builtins.readFile config.args.validatorFile;
       };
 
-      kubernetes.resources.services = ((listToAttrs (map(i: (nameValuePair "${module.name}-${toString i}" {
-        metadata.name = "${module.name}-${toString i}";
-        metadata.labels.name = module.name;
+      kubernetes.api.services = ((listToAttrs (map(i: (nameValuePair "${name}-${toString i}" {
+        metadata.name = "${name}-${toString i}";
+        metadata.labels.name = name;
         spec = {
           type = "ClusterIP";
           selector = {
-            app = "${module.name}";
-            "statefulset.kubernetes.io/pod-name" = "${module.name}-${toString i}";
+            app = "${name}";
+            "statefulset.kubernetes.io/pod-name" = "${name}-${toString i}";
           };
           ports = [{
             name = "p2p";
@@ -414,7 +421,7 @@ ${config.extraConfig}
           }];
         };
       })) (range 0 (config.replicas - 1)))) // (optionalAttrs (config.peerPort != null) {
-        "${module.name}" = {
+        "${name}" = {
           metadata.name = name;
           metadata.labels.app = name;
           spec = {
@@ -430,13 +437,13 @@ ${config.extraConfig}
             } {
               name = "p2p";
               port = 32238;
-              nodePort = config.peerPort;
+              nodePort = config.args.peerPort;
             }];
           };
         };
       }));
 
-      kubernetes.resources.podDisruptionBudgets.rippled = {
+      kubernetes.api.poddisruptionbudgets.rippled = {
         metadata.name = name;
         metadata.labels.app = name;
         spec.maxUnavailable = 1;

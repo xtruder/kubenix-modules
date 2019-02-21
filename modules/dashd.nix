@@ -1,13 +1,12 @@
-{ config, lib, k8s, ... }:
+{ config, name, kubenix, k8s, ...}:
 
-with k8s;
 with lib;
-
+with k8s;
 let
   b2s = value: if value then "1" else "0";
 in {
   config.kubernetes.moduleDefinitions.dashd.module = {config, module, ...}: let
-    name = module.name;
+    name = name;
 
     dashdConfig = ''
       ##
@@ -17,10 +16,10 @@ in {
       # Network-related settings:
 
       # Run on the test network instead of the real bitcoin network
-      testnet=${b2s config.testnet}
+      testnet=${b2s config.args.testnet}
 
       # Run a regression test network
-      regtest=${b2s config.regtest}
+      regtest=${b2s config.args.regtest}
 
       # Connect via a SOCKS5 proxy
       #proxy=127.0.0.1:9050
@@ -50,7 +49,7 @@ in {
       #
 
       # server=1 tells dashd to accept JSON-RPC commands
-      server=${b2s config.server}
+      server=${b2s config.args.server}
 
       # Bind to given address to listen for JSON-RPC connections. Use [host]:port notation for IPv6.
       # This option can be specified multiple times (default: bind to all interfaces)
@@ -82,7 +81,7 @@ in {
       # rpcauth=bob:b2dd077cb54591a2f3139e69a897ac$4e71f08d48b4347cf8eff3815c0e25ae2e9a4340474079f55705f40574f4ec99
 
       # Authentication
-      rpcauth=${toString config.rpcAuth}
+      rpcauth=${toString config.args.rpcAuth}
 
       # How many seconds dash will wait for a complete RPC HTTP request.
       # after the HTTP connection is established. 
@@ -143,157 +142,165 @@ in {
       txindex=1
     '';
   in {
-    options = {
-      image = mkOption {
-        description = "Name of the dashd image to use";
+  imports = [
+    kubenix.k8s
+  ];
+
+  options.args = {
+    image = mkOption {
+      description = "Name of the dashd image to use";
+      type = types.str;
+      default = "helidium/dashd";
+    };
+
+    replicas = mkOption {
+      description = "Number of dashd replicas";
+      type = types.int;
+      default = 1;
+    };
+
+    server = mkOption {
+      description = "Whether to enable RPC server";
+      default = true;
+      type = types.bool;
+    };
+
+    testnet = mkOption {
+      description = "Whether to run in testnet mode";
+      default = true;
+      type = types.bool;
+    };
+
+    regtest = mkOption {
+      description = "Whether to run in regtest mode";
+      default = false;
+      type = types.bool;
+    };
+
+    rpcAuth = mkOption {
+      description = "Rpc auth. The field comes in the format: <USERNAME>:<SALT>$<HASH>";
+      type = types.str;
+    };
+
+    storage = {
+      class = mkOption {
+        description = "Name of the storage class to use";
+        type = types.nullOr types.str;
+        default = null;
+      };
+
+      size = mkOption {
+        description = "Storage size";
         type = types.str;
-        default = "helidium/dashd";
+        default = if config.args.testnet || config.args.regtest then "10Gi" else "50Gi";
       };
+    };
+  };
 
-      replicas = mkOption {
-        description = "Number of dashd replicas";
-        type = types.int;
-        default = 1;
-      };
+  config = {
+    submodule = {
+      name = "dashd";
+      version = "1.0.0";
+      description = "";
+    };
+    kubernetes.api.statefulsets.dashd = {
+      metadata.name = name;
+      metadata.labels.app = name;
+      spec = {
+        replicas = config.args.replicas;
+        serviceName = name;
+        podManagementPolicy = "Parallel";
+        template = {
+          metadata.labels.app = name;
+          spec = {
+            initContainers = [{
+              name = "copy-dashd-config";
+              image = "busybox";
+              command = ["sh" "-c" "cp /config/dash.conf /dash/.dashcore/dash.conf"];
+              volumeMounts = [{
+                name = "config";
+                mountPath = "/config";
+              } {
+                name = "data";
+                mountPath = "/dash/.dashcore/";
+              }];
+            }];
+            containers.dashd = {
+              image = config.args.image;
 
-      server = mkOption {
-        description = "Whether to enable RPC server";
-        default = true;
-        type = types.bool;
-      };
+              volumeMounts = [{
+                name = "data";
+                mountPath = "/dash/.dashcore/";
+              }];
 
-      testnet = mkOption {
-        description = "Whether to run in testnet mode";
-        default = true;
-        type = types.bool;
-      };
-
-      regtest = mkOption {
-        description = "Whether to run in regtest mode";
-        default = false;
-        type = types.bool;
-      };
-
-      rpcAuth = mkOption {
-        description = "Rpc auth. The field comes in the format: <USERNAME>:<SALT>$<HASH>";
-        type = types.str;
-      };
-
-      storage = {
-        class = mkOption {
-          description = "Name of the storage class to use";
-          type = types.nullOr types.str;
-          default = null;
+              resources.requests = {
+                cpu = "1000m";
+                memory = "2048Mi";
+              };
+              resources.limits = {
+                cpu = "1000m";
+                memory = "2048Mi";
+              };
+              
+              ports = [{
+                containerPort = 9998;
+                name = "rpc-mainnet";
+              } {
+                containerPort = 19998;
+                name = "rpc-testnet";
+              } {
+                containerPort = 9999;
+                name = "p2p-mainnet";
+              } {
+                containerPort = 19999;
+                name = "p2p-testnet";
+              }];
+            };
+            volumes.config.configMap.name = "${name}-config";
+          };
         };
-
-        size = mkOption {
-          description = "Storage size";
-          type = types.str;
-          default = if config.testnet || config.regtest then "10Gi" else "50Gi";
-        };
+        volumeClaimTemplates = [{
+          metadata.name = "data";
+          spec = {
+            accessModes = ["ReadWriteOnce"];
+            storageClassName = mkIf (config.args.storage.class != null) config.args.storage.class;
+            resources.requests.storage = config.args.storage.size;
+          };
+        }];
       };
     };
 
-    config = {
-      kubernetes.resources.statefulSets.dashd = {
-        metadata.name = name;
-        metadata.labels.app = name;
-        spec = {
-          replicas = config.replicas;
-          serviceName = name;
-          podManagementPolicy = "Parallel";
-          template = {
-            metadata.labels.app = name;
-            spec = {
-              initContainers = [{
-                name = "copy-dashd-config";
-                image = "busybox";
-                command = ["sh" "-c" "cp /config/dash.conf /dash/.dashcore/dash.conf"];
-                volumeMounts = [{
-                  name = "config";
-                  mountPath = "/config";
-                } {
-                  name = "data";
-                  mountPath = "/dash/.dashcore/";
-                }];
-              }];
-              containers.dashd = {
-                image = config.image;
+    kubernetes.api.configmaps.dashd = {
+      metadata.name = "${name}-config";
+      data."dash.conf" = dashdConfig;
+    };
 
-                volumeMounts = [{
-                  name = "data";
-                  mountPath = "/dash/.dashcore/";
-                }];
-
-                resources.requests = {
-                  cpu = "1000m";
-                  memory = "2048Mi";
-                };
-                resources.limits = {
-                  cpu = "1000m";
-                  memory = "2048Mi";
-                };
-                
-                ports = [{
-                  containerPort = 9998;
-                  name = "rpc-mainnet";
-                } {
-                  containerPort = 19998;
-                  name = "rpc-testnet";
-                } {
-                  containerPort = 9999;
-                  name = "p2p-mainnet";
-                } {
-                  containerPort = 19999;
-                  name = "p2p-testnet";
-                }];
-              };
-              volumes.config.configMap.name = "${name}-config";
-            };
-          };
-          volumeClaimTemplates = [{
-            metadata.name = "data";
-            spec = {
-              accessModes = ["ReadWriteOnce"];
-              storageClassName = mkIf (config.storage.class != null) config.storage.class;
-              resources.requests.storage = config.storage.size;
-            };
-          }];
-        };
+    kubernetes.api.services.dashd = {
+      metadata.name = name;
+      metadata.labels.app = name;
+      spec = {
+        selector.app = name;
+        ports = [{
+          port = 9998;
+          name = "rpc-mainnet";
+        } {
+          port = 19998;
+          name = "rpc-testnet";
+        } {
+          port = 9999;
+          name = "p2p-mainnet";
+        } {
+          port = 19999;
+          name = "p2p-testnet";
+        }];
       };
+    };
 
-      kubernetes.resources.configMaps.dashd = {
-        metadata.name = "${name}-config";
-        data."dash.conf" = dashdConfig;
-      };
-
-      kubernetes.resources.services.dashd = {
-        metadata.name = name;
-        metadata.labels.app = name;
-        spec = {
-          selector.app = name;
-          ports = [{
-            port = 9998;
-            name = "rpc-mainnet";
-          } {
-            port = 19998;
-            name = "rpc-testnet";
-          } {
-            port = 9999;
-            name = "p2p-mainnet";
-          } {
-            port = 19999;
-            name = "p2p-testnet";
-          }];
-        };
-      };
-
-      kubernetes.resources.podDisruptionBudgets.dashd = {
-        metadata.name = name;
-        metadata.labels.app = name;
-        spec.maxUnavailable = 1;
-        spec.selector.matchLabels.app = name;
-      };
+    kubernetes.api.poddisruptionbudgets.dashd = {
+      metadata.name = name;
+      metadata.labels.app = name;
+      spec.maxUnavailable = 1;
+      spec.selector.matchLabels.app = name;
     };
   };
 }
