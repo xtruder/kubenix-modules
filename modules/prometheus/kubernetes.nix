@@ -64,22 +64,26 @@ in {
         name = "${name}-grafana";
         module = "grafana";
         namespace = module.namespace;
-        configuration.resources = {
-          "deployment-dashboard.json" = ./dashboards/deployment-dashboard.json;
-          "kubernetes-capacity-planing-dashboard.json" = ./dashboards/kubernetes-capacity-planing-dashboard.json;
-          "kubernetes-cluster-health-dashboard.json" = ./dashboards/kubernetes-cluster-health-dashboard.json;
-          "kubernetes-cluster-status-dashboard.json" = ./dashboards/kubernetes-cluster-status-dashboard.json;
-          "kubernetes-cluster-usage-dashboard.json" = ./dashboards/kubernetes-cluster-usage-dashboard.json;
-          "kubernetes-control-plane-status-dashboard.json" = ./dashboards/kubernetes-control-plane-status-dashboard.json;
-          "kubernetes-resource-requests-dashboard.json" = ./dashboards/kubernetes-resource-requests-dashboard.json;
-          "nodes-dashboard.json" = ./dashboards/nodes-dashboard.json;
-          "pods-dashboard.json" = ./dashboards/pods-dashboard.json;
-          "prometheus-datasource.json" = {
-            access = "proxy";
-            basicAuth = false;
-            name = "prometheus";
+
+        configuration = {
+          provisioning.datasources.prometheus = {
             type = "prometheus";
             url = "http://${name}-prometheus:9090";
+            access = "proxy";
+          };
+          provisioning.dashboardProviders.kubernetes = {
+            orgId = 1;
+            dashboards = {
+              "deployment-dashboard" = ./dashboards/deployment-dashboard.json;
+              "kubernetes-capacity-planing-dashboard" = ./dashboards/kubernetes-capacity-planing-dashboard.json;
+              "kubernetes-cluster-health-dashboard" = ./dashboards/kubernetes-cluster-health-dashboard.json;
+              "kubernetes-cluster-status-dashboard" = ./dashboards/kubernetes-cluster-status-dashboard.json;
+              "kubernetes-cluster-usage-dashboard" = ./dashboards/kubernetes-cluster-usage-dashboard.json;
+              "kubernetes-control-plane-status-dashboard" = ./dashboards/kubernetes-control-plane-status-dashboard.json;
+              "kubernetes-resource-requests-dashboard" = ./dashboards/kubernetes-resource-requests-dashboard.json;
+              "nodes-dashboard" = ./dashboards/nodes-dashboard.json;
+              "pods-dashboard" = ./dashboards/pods-dashboard.json;
+            };
           };
         };
       };

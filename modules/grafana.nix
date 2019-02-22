@@ -3,24 +3,21 @@
 with k8s;
 with lib;
 
-{
-  config.kubernetes.moduleDefinitions.grafana.module = {name, config, ...}:
-    let
-      configFiles = (mapAttrs' (n: v:
-        let
-          file = "${configMapName}.json";
-          configMapName = "${name}-${removeSuffix ".json" n}";
-          value = (if isAttrs v then builtins.toJSON v else builtins.readFile v);
-        in
-          nameValuePair file {
-            inherit configMapName value;
-          }
-      ) (config.resources));
-    in {
+let
+  moduleToAttrs = value:
+    if isAttrs value
+    then mapAttrs (n: v: moduleToAttrs v) (filterAttrs (n: v: !(hasPrefix "_" n) && v != null) value)
+
+    else if isList value
+    then map (v: moduleToAttrs v) value
+
+    else value;
+in {
+  config.kubernetes.moduleDefinitions.grafana.module = {name, config, ...}: {
     options = {
       image = mkOption {
         description = "Version of grafana to use";
-        default = "grafana/grafana:5.1.2";
+        default = "grafana/grafana:6.0.0-beta3";
         type = types.str;
       };
 
@@ -76,32 +73,205 @@ with lib;
         };
       };
 
-      enableWatcher = mkOption {
-        description = "Whether to enable grafana watcher";
-        type = types.bool;
-        default = (length (attrNames config.resources)) > 0;
-      };
+      provisioning = {
+        datasources = mkOption {
+          description = "Attribute set of datasources to provision";
+          type = types.attrsOf (types.submodule ({name, config, ...}: {
+            options = {
+              name = mkOption {
+                description = "Datasource name";
+                type = types.str;
+                default = name;
+              };
 
-      resources = mkOption {
-        description = "Attribute set of grafana resources to deploy (each resource key must end with resource type and an file ext, example: <some name>-<resource>.json)";
-        example = literalExample ''
-        {
-          "pods-dashboard.json" = ./prometheus/pods-dashboard.json;
-          "prometheus-datasource.json" = {};
-        }
-        '';
-        default = {};
+              type = mkOption {
+                description = "Datasource type";
+                type = types.str;
+              };
+
+              access = mkOption {
+                description = "Datasource access mode";
+                type = types.enum ["proxy" "direct"];
+                default = "proxy";
+              };
+
+              editable = mkOption {
+                description = "Whether to allow edit dashboard from the UI";
+                type = types.bool;
+                default = false;
+              };
+
+              orgId = mkOption {
+                description = "Datasource organization ID";
+                type = types.int;
+                default = 1;
+              };
+
+              url = mkOption {
+                description = "Datasource url";
+                type = types.str;
+                default = "";
+              };
+
+              user = mkOption {
+                description = "Datasource database user";
+                type = types.str;
+                default = "";
+              };
+
+              password = mkOption {
+                description = "Datasource password";
+                type = types.str;
+                default = "";
+              };
+
+              database = mkOption {
+                description = "Datasource database";
+                type = types.str;
+                default = "";
+              };
+
+              basicAuth = mkOption {
+                description = "Whether enable/disable datasource basic auth";
+                type = types.bool;
+                default = false;
+              };
+
+              basicAuthUser = mkOption {
+                description = "Datasource basic auth user";
+                type = types.str;
+                default = "";
+              };
+
+              basicAuthPassword = mkOption {
+                description = "Datasource basic auth password";
+                type = types.str;
+                default = "";
+              };
+
+              withCredentials = mkOption {
+                description = "Whether to pass credentials";
+                type = types.bool;
+                default = true;
+              };
+
+              isDefault = mkOption {
+                description = "Whether this is a default datasource";
+                type = types.bool;
+                default = config.name == "default";
+              };
+
+              jsonData = mkOption {
+                description = "Additional configuration json data";
+                type = types.attrs;
+                default = {};
+              };
+            };
+          }));
+          default = {};
+        };
+
+        notifiers = mkOption {
+          description = "Attribute set of notifiers to provision";
+          type = types.attrsOf (types.submodule ({name, config, ...}: {
+            options = {
+              name = mkOption {
+                description = "Notifier name";
+                type = types.str;
+                default = name;
+              };
+
+              type = mkOption {
+                description = "Notifier type";
+                type = types.enum [
+                  "slack" "pushover" "victorops" "kafka" "LINE" "pagerduty"
+                  "sensu" "prometheus-alertmanager" "teams" "dingding" "email"
+                  "hipchat" "opsgenie" "telegram" "threema" "webhook"
+                ];
+              };
+
+              uid = mkOption {
+                description = "Notifier uid";
+                type = types.str;
+                default = "";
+              };
+
+              orgId = mkOption {
+                description = "Notifier organization ID";
+                type = types.int;
+                default = 1;
+              };
+
+              orgName = mkOption {
+                description = "Notifier organization name";
+                type = types.str;
+                default = "";
+              };
+
+              isDefault = mkOption {
+                description = "Whether this is default notifier";
+                type = types.bool;
+                default = config.name == "default";
+              };
+
+              settings = mkOption {
+                description = "Notifier settings";
+                type = types.attrs;
+                default = {};
+              };
+            };
+          }));
+          default = {};
+        };
+
+        dashboardProviders = mkOption {
+          description = "Attribute set of dashboard sources to provision";
+          type = types.attrsOf (types.submodule ({name, config, ...}: {
+            options = {
+              name = mkOption {
+                description = "Dashboards provider name";
+                type = types.str;
+                default = name;
+              };
+
+              orgId = mkOption {
+                description = "Organization ID";
+                type = types.int;
+                default = 1;
+              };
+
+              disableDeletion = mkOption {
+                description = "Whether to disable dasboard deletion";
+                type = types.bool;
+                default = false;
+              };
+
+              updateIntervalSeconds = mkOption {
+                description = "Dashboard update interval";
+                type = types.int;
+                default = 10;
+              };
+
+              dashboards = mkOption {
+                description = "Attribute set of dashboards";
+                type = types.attrsOf (types.either types.attrs types.path);
+                default = {};
+              };
+            };
+          }));
+          default = {};
+        };
       };
 
       storage = {
         size = mkOption {
-          description = "Elasticsearch storage size";
+          description = "Grafana storage size";
           default = "1Gi";
           type = types.str;
         };
 
         class = mkOption {
-          description = "Elasticsearh datanode storage class";
+          description = "Grafana storage class";
           type = types.nullOr types.str;
           default = null;
         };
@@ -152,7 +322,27 @@ with lib;
                 volumeMounts = [{
                   name = "storage";
                   mountPath = "/data";
-                }];
+                  readOnly = false;
+                } {
+                  name = "datasources";
+                  mountPath = "/etc/grafana/provisioning/datasources";
+                  readOnly = false;
+                } {
+                  name = "notifiers";
+                  mountPath = "/etc/grafana/provisioning/notifiers";
+                  readOnly = false;
+                } {
+                  name = "dashboard-providers";
+                  mountPath = "/etc/grafana/provisioning/dashboards";
+                  readOnly = false;
+                }] ++ flatten (mapAttrsToList (_: provider:
+                  mapAttrsToList (n: dashboard: {
+                    name = "dashboard-${provider.name}-${n}";
+                    mountPath = "/grafana-dashboard-definitions/${provider.name}/${n}.json";
+                    subPath = "dashboard.yaml";
+                    readOnly = false;
+                  }) provider.dashboards
+                ) config.provisioning.dashboardProviders);
 
                 resources = {
                   requests = {
@@ -165,16 +355,32 @@ with lib;
                   };
                 };
 
-                readinessProbe.httpGet = {
-                  path = "/login";
-                  port = 3000;
-                };
-
-                livenessProbe.httpGet = {
-                  path = "/login";
-                  port = 3000;
+                readinessProbe = {
+                  httpGet = {
+                    path = "/api/health";
+                    port = 3000;
+                  };
+                  periodSeconds = 1;
+                  timeoutSeconds = 1;
+                  successThreshold = 1;
+                  failureThreshold = 10;
                 };
               };
+              volumes = [{
+                name = "datasources";
+                configMap.name = "${name}-datasources";
+              } {
+                name = "notifiers";
+                configMap.name = "${name}-notifiers";
+              } {
+                name = "dashboard-providers";
+                configMap.name = "${name}-dashboard-providers";
+              }] ++ flatten (mapAttrsToList (_: provider:
+                mapAttrsToList (n: dashboard: {
+                  name = "dashboard-${provider.name}-${n}";
+                  configMap.name = "${name}-dashboard-${provider.name}-${n}";
+                }) provider.dashboards
+              ) config.provisioning.dashboardProviders);
             };
           };
         };
@@ -192,6 +398,55 @@ with lib;
           selector.app = name;
         };
       };
+
+      kubernetes.resources.configMaps = mkMerge ([{
+        grafana-datasources = {
+          metadata.name = "${name}-datasources";
+          metadata.labels.app = name;
+          data."datasources.yaml" = builtins.toJSON {
+            apiVersion = 1;
+            datasources = attrValues (moduleToAttrs config.provisioning.datasources);
+          };
+        };
+
+        grafana-notifiers = {
+          metadata.name = "${name}-notifiers";
+          metadata.labels.app = name;
+          data."notifiers.yaml" = builtins.toJSON {
+            notifiers = mapAttrsToList (_: notifier: {
+              inherit (notifier) name type uid settings;
+              org_id = notifier.orgId;
+              org_name = notifier.orgName;
+              id_default = notifier.isDefault;
+            }) config.provisioning.notifiers;
+          };
+        };
+
+        grafana-dashboard-providers = {
+          metadata.name = "${name}-dashboard-providers";
+          metadata.labels.app = name;
+          data."dashboards.yaml" = builtins.toJSON {
+            apiVersion = 1;
+            providers = mapAttrsToList (_: provider: {
+              inherit (provider) name orgId disableDeletion updateIntervalSeconds;
+              folder = "";
+              type = "file";
+              options.path = "/grafana-dashboard-definitions/${provider.name}";
+            }) config.provisioning.dashboardProviders;
+          };
+        };
+      }] ++ flatten (mapAttrsToList (_: provider:
+        mapAttrsToList (n: dashboard: {
+          "grafana-dashboard-${provider.name}-${n}" = {
+            metadata.name = "${name}-dashboard-${provider.name}-${n}";
+            metadata.labels.app = name;
+            data."dashboard.yaml" =
+              if isAttrs dashboard
+              then builtins.toJSON dashboard
+              else builtins.readFile dashboard;
+          };
+        }) provider.dashboards
+      ) config.provisioning.dashboardProviders));
     } (mkIf (config.db.type != "sqlite3") {
       kubernetes.resources.deployments.grafana = {
         spec.template.spec.volumes.storage.emptyDir = {};
@@ -210,53 +465,6 @@ with lib;
           resources.requests.storage = config.storage.size;
         };
       };
-    }) (mkIf config.enableWatcher {
-      kubernetes.resources.deployments.grafana = {
-        spec.template.spec = {
-          containers.watcher = {
-            /* It subscribes to filesystem changes in a given directory,
-            reads files matching *-datasource.json and *-dashboard.json
-            and imports the datasources and dashboards to a given Grafana
-            instance via Grafana's REST API */
-            image = "quay.io/coreos/grafana-watcher:v0.0.8";
-            args = [
-              "--watch-dir=/var/grafana-resources"
-              "--grafana-url=http://localhost:3000"
-            ];
-            env = {
-              GRAFANA_USER.value = "admin";
-              GRAFANA_PASSWORD = secretToEnv config.adminPassword;
-            };
-            resources = {
-              requests = {
-                memory = "16Mi";
-                cpu = "50m";
-              };
-              limits = {
-                memory = "32Mi";
-                cpu = "100m";
-              };
-            };
-            volumeMounts = mapAttrsToList (n: v: {
-              name = v.configMapName;
-              mountPath = "/var/grafana-resources/${n}";
-              subPath = n;
-              readOnly = true;
-            }) configFiles;
-          };
-          volumes = mapAttrs' (n: v: nameValuePair v.configMapName {
-            configMap.name = v.configMapName;
-          }) configFiles;
-        };
-      };
-
-      kubernetes.resources.configMaps = mapAttrs' (n: v:
-        nameValuePair v.configMapName {
-          metadata.name = v.configMapName;
-          metadata.labels.app = name;
-          data."${n}" = v.value;
-        }
-      ) configFiles;
     })]);
   };
 }
