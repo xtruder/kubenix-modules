@@ -28,6 +28,24 @@ in {
         };
       };
 
+      db = {
+        name = mkOption {
+          description = "Automatically initializes a database with this name.";
+          type = types.nullOr types.str;
+          default = null;
+        };
+
+        user = mkSecretOption {
+          description = "Influx database username to grant access.";
+          default = null;
+        };
+
+        password = mkSecretOption {
+          description = "Influx database password to grant access.";
+          default = null;
+        };
+      };
+
       storage = {
         size = mkOption {
           description = "Size of storage for redis per replica";
@@ -64,6 +82,13 @@ in {
                     mkIf (config.auth.adminUsername != null) (secretToEnv config.auth.adminUsername);
                   INFLUXDB_ADMIN_PASSWORD =
                     mkIf (config.auth.adminPassword != null) (secretToEnv config.auth.adminPassword);
+                  INFLUXDB_DB = mkIf (config.db.name != null) {
+                    value = config.db.name;
+                  };
+                  INFLUXDB_USER =
+                    mkIf (config.db.user != null) (secretToEnv config.db.user);
+                  INFLUXDB_USER_PASSWORD =
+                    mkIf (config.db.password != null) (secretToEnv config.db.password);
                 };
 
                 ports = [{

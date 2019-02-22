@@ -6,12 +6,10 @@ with k8s;
   require = [./test.nix ../modules/grafana.nix]
     ++ (import ../modules/prometheus/module-list.nix);
 
-  kubernetes.resources.namespaces.monitoring = {};
-
   kubernetes.modules.k8sprom = {
     module = "prometheus-kubernetes";
 
-    namespace = "monitoring";
+    namespace = "default";
 
     configuration = {
       alerts.enable = true;
