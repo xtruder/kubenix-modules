@@ -116,6 +116,8 @@ ${config.extraConfig}
     };
   };
 
+  cmd = concatStringsSep " " (["rippled" "--conf" "/etc/rippled/rippled.conf"] ++ config.extraArgs);
+
   in {
     options = {
       image = mkOption {
@@ -225,6 +227,18 @@ ${config.extraConfig}
         default = if config.autovalidator.enable then 1 else 3;
       };
 
+      standalone = mkOption {
+        description = "Whether to run with no peers";
+        type = types.bool;
+        default = false;
+      };
+
+      startFresh = mkOption {
+        description = "Whether to start from fresh ledger";
+        type = types.bool;
+        default = false;
+      };
+
       autovalidator = {
         enable = mkEnableOption "auto validator";
 
@@ -285,23 +299,33 @@ ${config.extraConfig}
         default = "";
         type = types.lines;
       };
+
+      extraArgs = mkOption {
+        description = "Extra rippled arguments";
+        type = types.listOf types.str;
+        default = [];
+      };
     };
 
     config = {
+      extraArgs = mkIf config.standalone ["--standalone"];
+      standalone = mkDefault config.autovalidator.enable;
+      startFresh = mkDefault config.autovalidator.enable;
+
       kubernetes.resources.statefulSets.rippled = {
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
-          updateStrategy.type = "RollingUpdate";
           replicas = config.replicas;
           serviceName = name;
           podManagementPolicy = "Parallel";
+          updateStrategy.type = "RollingUpdate";
           template = {
             metadata.labels.app = name;
             spec = {
               initContainers = [{
-                name = "init-validator";
-                image = "busybox";
+                name = "init-rippled";
+                image = config.image;
                 imagePullPolicy = "IfNotPresent";
                 env = mkIf config.validator.enable {
                   RIPPLE_VALIDATOR_TOKEN = mkIf config.validator.enable (secretToEnv config.validator.token);
@@ -333,15 +357,23 @@ ${config.extraConfig}
               securityContext.fsGroup = 1000;
               containers.rippled = {
                 image = config.image;
-                imagePullPolicy = "Always";
-                command = ["rippled" "--conf" "/etc/rippled/rippled.conf"] ++
-                  (optionals (config.autovalidator.enable) ["-a" "--start"]);
+                imagePullPolicy = "IfNotPresent";
+                command = ["sh" "-c" ''
+                  ${optionalString config.startFresh ''
+                  if [ ! -f /data/.ledger-initialized ]; then
+                    touch /data/.ledger-initialized
+                    exec ${cmd} --start
+                  fi
+                  ''}
+
+                  exec ${cmd}
+                ''];
 
                 resources.requests = resources.${config.nodeSize};
                 resources.limits = resources.${config.nodeSize};
 
                 readinessProbe = {
-                  exec.command = ["/bin/sh" "-c" ''
+                  exec.command = ["sh" "-c" ''
                     rippled --conf /etc/rippled/rippled.conf server_info | grep complete_ledgers | grep -v empty
                   ''];
                   initialDelaySeconds = 60;
@@ -368,6 +400,9 @@ ${config.extraConfig}
                 volumeMounts = [{
                   name = "config";
                   mountPath = "/etc/rippled";
+                } {
+                  name = "storage";
+                  mountPath = "/data";
                 }];
               };
               volumes = {
