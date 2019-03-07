@@ -8,6 +8,7 @@
     configuration = {
       nodeSize = "tiny";
       storage.class = "ssd";
+      autovalidator.enable = true;
     };
   };
 }
