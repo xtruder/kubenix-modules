@@ -1,0 +1,35 @@
+{ config, name, pkgs, lib, kubenix, ... }:
+
+with lib;
+
+let
+  package = pkgs.callPackage ./package.nix { };
+in {
+  imports = [ kubenix.module ];
+
+  config = {
+    submodule = {
+      name = "metacontroller";
+      version = "1.0.0";
+      description = "";
+    };
+
+    docker.images.metacontroller.image = pkgs.dockerTools.buildLayeredImage {
+      name = "metacontroller";
+      contents = [ package ];
+      extraCommands = ''
+        mkdir etc
+        chmod u+w etc
+        echo "nginx:x:1000:1000::/:" > etc/passwd
+        echo "nginx:x:1000:app" > etc/group
+      '';
+      config = {
+        Cmd = ["metacontroller"];
+      };
+    };
+
+    kubernetes.api.serviceaccounts.metacontroller = {
+      metadata.name = name;
+    };
+  };
+}
