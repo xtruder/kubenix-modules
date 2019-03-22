@@ -156,7 +156,10 @@ ${config.extraConfig}
       ips = mkOption {
         description = "List of ips where to find other servers speaking ripple protocol";
         type = types.listOf types.str;
-        default = ["r.ripple.com 51235"];
+        default =
+          if config.testnet
+          then ["r.altnet.rippletest.net 51235"]
+          else ["r.ripple.com 51235"];
       };
 
       privatePeer = mkOption {
@@ -165,13 +168,28 @@ ${config.extraConfig}
         default = false;
       };
 
-      validatorFile = mkOption {
+      testnet = mkOption {
+        description = "Whether to run node on testnet";
+        type = types.bool;
+        default = false;
+      };
+
+      validators = mkOption {
         description = "Rippled validator list file";
-        type = types.package;
-        default = builtins.fetchurl {
-          url = "https://ripple.com/validators.txt";
-          sha256 = "0lsnh7pclpxl627qlvjfqjac97z3glwjv9h08lqcr11bxb6rafdk";
-        };
+        type = types.lines;
+        default =
+          if !(config.testnet)
+          then builtins.readFile (builtins.fetchurl {
+            url = "https://ripple.com/validators.txt";
+            sha256 = "0lsnh7pclpxl627qlvjfqjac97z3glwjv9h08lqcr11bxb6rafdk";
+          })
+          else ''
+          [validator_list_sites]
+          https://vl.altnet.rippletest.net
+
+          [validator_list_keys]
+          ED264807102805220DA0F312E71FC2C69E1552C9C5790F6C25E3729DEB573D5860
+          '';
       };
 
       db = {
@@ -431,7 +449,7 @@ ${config.extraConfig}
       kubernetes.resources.configMaps.rippled = {
         metadata.name = "${name}-config";
         data."rippled.conf" = rippledConfig;
-        data."validators.txt" = builtins.readFile config.validatorFile;
+        data."validators.txt" = config.validators;
       };
 
       kubernetes.resources.services = ((listToAttrs (map(i: (nameValuePair "${module.name}-${toString i}" {
