@@ -18,6 +18,16 @@ with k8s;
         default = 1;
       };
 
+      smtp.username = mkSecretOption {
+        description = "Smtp username";
+        default.key = "username";
+      };
+
+      smtp.password = mkSecretOption {
+        description = "Smtp password";
+        default.key = "password";
+      };
+
       database = {
         type = mkOption {
           description = "Database type";
@@ -52,18 +62,6 @@ with k8s;
           description = "Database password";
           default.key = "password";
         };
-      };
-
-    #   mongodbUri = mkOption {
-    #     description = "URI for mongodb database";
-    #     type = types.str;
-    #     default = "mongodb://mongo/ghost";
-    #   };
-
-      extraPorts = mkOption {
-        description = "Extra ports to expose";
-        type = types.listOf types.int;
-        default = [];
       };
     };
 
@@ -106,14 +104,14 @@ with k8s;
 
                 env.mail__transport.value = "SMTP";
                 env.mail__options__service.value = "Mailgun";
-                env.mail__options__auth__user.value = "ghost@gatehub.net";
-                env.mail__options__auth__pass.value = "QMcRQX5kMeO34YosDthZ";
+                env.mail__options__auth__user = secretToEnv config.smtp.username;
+                env.mail__options__auth__pass =  secretToEnv config.smtp.password;
 
                 securityContext.capabilities.add = ["NET_ADMIN"];
 
                 ports = [{
                   containerPort = 2368;
-                } ] ++ map (port: {containerPort = port;}) config.extraPorts;
+                }];
                 volumeMounts = [{
                   name = "data";
                   mountPath = "/ghost/data";
@@ -148,11 +146,7 @@ with k8s;
           name = "http";
           port = 80;
           targetPort = 2368;
-        }] ++ map (port: {
-          name = "${toString port}";
-          port = port;
-          targetPort = port;
-        }) config.extraPorts;
+        }];
       };
     };
   };
