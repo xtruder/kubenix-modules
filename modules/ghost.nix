@@ -95,15 +95,7 @@ with k8s;
               containers.ghost = {
                 image = config.image;
                 env.url.value= "http://ghost.staging.gatehub.net";
-                # env.NODE_ENV.value = "production";
-                # env.MYSQL_CLIENT.value = config.database.type;
-                # env.MYSQL_DATABASE.value = config.database.name;
-                # env.MYSQL_PASSWORD = secretToEnv config.database.password;
-                # env.MYSQL_HOST.value = config.database.host;
-                # env.MYSQL_USER = secretToEnv config.database.username;
-                # env.GHOST_INSTALL.value = "/var/lib/ghost";
                 env.GHOST_INSTALL.value = "/ghost/data";
-                # env.GHOST_CONTENT.value = "/ghost/data/content";
 
                 env.database__client.value = config.database.type;
                 env.database__connection__database.value = config.database.name;
