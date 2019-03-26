@@ -92,7 +92,7 @@ with k8s;
 
               containers.ghost = {
                 image = config.image;
-                env.url.value= "http://ghost.staging.gatehub.net";
+                env.url.value= "http://ghost.gatehub.net";
                 env.GHOST_INSTALL.value = "/ghost/data";
 
                 env.database__client.value = config.database.type;
@@ -123,7 +123,7 @@ with k8s;
             metadata.name = "data";
             spec = {
               accessModes = ["ReadWriteOnce"];
-              resources.requests.storage = "1G";
+              resources.requests.storage = "5G";
             };
           }];
         };
