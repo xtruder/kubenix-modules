@@ -49,4 +49,5 @@
   ./ilp-connector.nix
   ./metabase.nix
   ./locust.nix
+  ./ghost.nix
 ] ++ import ./prometheus/module-list.nix
