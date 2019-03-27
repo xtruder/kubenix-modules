@@ -28,6 +28,11 @@ with k8s;
         default.key = "password";
       };
 
+      url = mkOption {
+        type = types.str;
+        description = "URL of the blog";
+      };
+
       database = {
         type = mkOption {
           description = "Database type";
@@ -92,7 +97,7 @@ with k8s;
 
               containers.ghost = {
                 image = config.image;
-                env.url.value= "http://ghost.gatehub.net";
+                env.url.value= config.url;
                 env.GHOST_INSTALL.value = "/ghost/data";
 
                 env.database__client.value = config.database.type;
