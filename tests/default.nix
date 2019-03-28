@@ -61,4 +61,5 @@ in {
   ilp-connector = buildTest ./ilp-connector.nix {};
   metabase = buildTest ./metabase.nix {};
   locust = buildTest ./locust.nix {};
+  ghost = buildTest ./ghost.nix {};
 }

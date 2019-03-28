@@ -4,7 +4,9 @@ with lib;
 with k8s;
 
 {
-  config.kubernetes.moduleDefinitions.ghost.module = {module, config, ...}: {
+  config.kubernetes.moduleDefinitions.ghost.module = {module, config, ...}: let
+    name = module.name;
+  in {
     options = {
       image = mkOption {
         description = "Docker image to use";
@@ -18,19 +20,34 @@ with k8s;
         default = 1;
       };
 
-      smtp.username = mkSecretOption {
-        description = "Smtp username";
-        default.key = "username";
-      };
-
-      smtp.password = mkSecretOption {
-        description = "Smtp password";
-        default.key = "password";
-      };
-
       url = mkOption {
         type = types.str;
         description = "URL of the blog";
+      };
+
+      mail = {
+        enable = mkOption {
+          description = "Whether to enable mails";
+          type = types.bool;
+          default = false;
+        };
+
+        service = mkOption {
+          description = "Service to use for sending mails";
+          type = types.str;
+        };
+
+        auth = {
+          user = mkSecretOption {
+            description = "Mail username";
+            default.key = "username";
+          };
+
+          pass = mkSecretOption {
+            description = "Mail password";
+            default.key = "password";
+          };
+        };
       };
 
       database = {
@@ -68,20 +85,34 @@ with k8s;
           default.key = "password";
         };
       };
+
+      storage = {
+        class = mkOption {
+          description = "Name of the storage class to use";
+          type = types.nullOr types.str;
+          default = null;
+        };
+
+        size = mkOption {
+          description = "Storage size";
+          type = types.str;
+          default = "10Gi";
+        };
+      };
     };
 
     config = {
-      kubernetes.resources.statefulSets.ghost = {
+      kubernetes.resources.deployments.ghost = {
         metadata = {
-          name = module.name;
-          labels.app = module.name;
+          name = name;
+          labels.app = name;
         };
         spec = {
-          serviceName = module.name;
           replicas = config.replicas;
-          selector.matchLabels.app = module.name;
+          strategy.type = "Recreate";
+          selector.matchLabels.app = name;
           template = {
-            metadata.labels.app = module.name;
+            metadata.labels.app = name;
             spec = {
               affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution = [{
                 weight = 100;
@@ -89,7 +120,7 @@ with k8s;
                   labelSelector.matchExpressions = [{
                     key = "app";
                     operator = "In";
-                    values = [ module.name ];
+                    values = [ name ];
                   }];
                   topologyKey = "kubernetes.io/hostname";
                 };
@@ -97,55 +128,58 @@ with k8s;
 
               containers.ghost = {
                 image = config.image;
-                env.url.value= config.url;
-                env.GHOST_INSTALL.value = "/ghost/data";
 
-                env.database__client.value = config.database.type;
-                env.database__connection__database.value = config.database.name;
-                env.database__connection__password = secretToEnv config.database.password;
-                env.database__connection__host.value = config.database.host;
-                env.database__connection__user = secretToEnv config.database.username;
-                
-
-                env.mail__transport.value = "SMTP";
-                env.mail__options__service.value = "Mailgun";
-                env.mail__options__auth__user = secretToEnv config.smtp.username;
-                env.mail__options__auth__pass =  secretToEnv config.smtp.password;
-
-                securityContext.capabilities.add = ["NET_ADMIN"];
+                env = mkMerge [{
+                  url.value = config.url;
+                  database__client.value = config.database.type;
+                  database__connection__database.value = config.database.name;
+                  database__connection__password = secretToEnv config.database.password;
+                  database__connection__host.value = config.database.host;
+                  database__connection__user = secretToEnv config.database.username;
+                } (mkIf config.mail.enable {
+                  mail__transport.value = "SMTP";
+                  mail__options__service.value = config.mail.service;
+                  mail__options__auth__user = secretToEnv config.mail.auth.user;
+                  mail__options__auth__pass = secretToEnv config.mail.auth.pass;
+                })];
 
                 ports = [{
                   containerPort = 2368;
                 }];
                 volumeMounts = [{
-                  name = "data";
-                  mountPath = "/ghost/data";
+                  name = "content";
+                  mountPath = "/var/lib/ghost/content";
                 }];
               };
+
+              volumes.content.persistentVolumeClaim.claimName = name;
             };
           };
-          volumeClaimTemplates = [{
-            metadata.name = "data";
-            spec = {
-              accessModes = ["ReadWriteOnce"];
-              resources.requests.storage = "5G";
-            };
-          }];
         };
       };
 
       kubernetes.resources.podDisruptionBudgets.ghost = {
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
+        metadata.name = name;
+        metadata.labels.app = name;
         spec.minAvailable = 1;
-        spec.selector.matchLabels.app = module.name;
+        spec.selector.matchLabels.app = name;
+      };
+
+      kubernetes.resources.persistentVolumeClaims.ghost = {
+        metadata.name = name;
+        metadata.labels.app = name;
+        spec = {
+          accessModes = ["ReadWriteOnce"];
+          resources.requests.storage = config.storage.size;
+          storageClassName = config.storage.class;
+        };
       };
 
       kubernetes.resources.services.ghost = {
-        metadata.name = module.name;
-        metadata.labels.app = module.name;
+        metadata.name = name;
+        metadata.labels.app = name;
 
-        spec.selector.app = module.name;
+        spec.selector.app = name;
 
         spec.ports = [{
           name = "http";
