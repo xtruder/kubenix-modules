@@ -71,7 +71,7 @@ with k8s;
     };
 
     config = {
-      kubernetes.resources.statefulSets.ghost = {
+      kubernetes.resources.deployments.ghost = {
         metadata = {
           name = module.name;
           labels.app = module.name;
