@@ -353,7 +353,7 @@ in {
         host = mkOption {
           description = "Host to bind the administation API to";
           type = types.str;
-          default = "127.0.0.1";
+          default = "0.0.0.0";
         };
       };
 
@@ -425,7 +425,7 @@ in {
                     CONNECTOR_INITIAL_CONNECT_TIMEOUT.value = toString config.initialConnectTimeout;
                     CONNECTOR_ADMIN_API.value = boolToString config.adminApi.enable;
                     CONNECTOR_ADMIN_API_PORT = mkIf (config.adminApi.enable) {
-                      value = config.adminApi.port;
+                      value = toString config.adminApi.port;
                     };
                     CONNECTOR_ADMIN_API_HOST = mkIf (config.adminApi.enable) {
                       value = config.adminApi.host;
