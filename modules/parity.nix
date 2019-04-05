@@ -128,7 +128,7 @@ with lib;
                 };
                 volumeMounts = [{
                   name = "storage";
-                  mountPath = "/root/.local/share/io.parity.ethereum";
+                  mountPath = "/home/parity/.local/share/io.parity.ethereum";
                 }];
                 ports = [
                   { containerPort = 8545; }
