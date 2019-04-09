@@ -93,6 +93,7 @@ with lib;
           template = {
             metadata.labels.app = name;
             spec = {
+              securityContext.fsGroup = 1000;
               containers.ethmonitor = {
                 image = "gatehub/ethmonitor";
                 env.ETH_NODE_URL.value = "http://localhost:8545";
