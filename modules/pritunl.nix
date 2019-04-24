@@ -23,6 +23,12 @@ with lib;
         default = "mongodb://mongo/pritunl";
       };
 
+      enableIpForwarding = mkOption {
+        description = "Whether to explicitly enable ip forwarding using init container";
+        type = types.bool;
+        default = true;
+      };
+
       extraPorts = mkOption {
         description = "Extra ports to expose";
         type = types.listOf types.int;
@@ -53,6 +59,13 @@ with lib;
                   }];
                   topologyKey = "kubernetes.io/hostname";
                 };
+              }];
+
+              initContainers = mkIf config.enableIpForwarding [{
+                name = "enable-ip-forward";
+                image = "busybox";
+                command = ["sh" "-c" "echo 1 > /proc/sys/net/ipv4/ip_forward"];
+                securityContext.privileged = true;
               }];
 
               containers.pritunl = {
