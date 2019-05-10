@@ -72,7 +72,7 @@ with k8s;
             metadata.labels.app = module.name;
             metadata.annotations = {
               "prometheus.io/scrape" = "true";
-              "prometheus.io/port" = "9090";
+              "prometheus.io/port" = "9419";
             };
             spec = {
               serviceAccountName = module.name;
@@ -150,7 +150,7 @@ with k8s;
                 };
                 ports = [{
                   name = "metrics";
-                  containerPort = 9090;
+                  containerPort = 9419;
                 }];
               };
               volumes.config-rw.emptyDir = {};
