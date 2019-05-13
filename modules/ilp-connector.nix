@@ -14,6 +14,7 @@ let
     "ilp-plugin-xrp-paychan"
     "ilp-plugin-lightning"
     "ilp-plugin-xrp-asym-server"
+    "ilp-plugin-http"
   ];
   rateBackends = [
     "ecb"
