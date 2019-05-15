@@ -17,7 +17,7 @@ in {
     options = {
       image = mkOption {
         description = "Version of grafana to use";
-        default = "grafana/grafana:6.0.0-beta3";
+        default = "grafana/grafana:6.1.6";
         type = types.str;
       };
 
