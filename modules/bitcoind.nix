@@ -139,6 +139,9 @@ in {
       
       # Index all the transactions
       txindex=1
+      
+      # Enable replace By Fee
+      walletrbf=1
     '';
   in {
     options = {
