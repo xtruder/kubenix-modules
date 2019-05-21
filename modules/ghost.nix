@@ -161,7 +161,7 @@ with k8s;
       kubernetes.resources.podDisruptionBudgets.ghost = {
         metadata.name = name;
         metadata.labels.app = name;
-        spec.minAvailable = 1;
+        spec.maxUnavailable = if config.replicas < 2 then config.replicas else "50%";
         spec.selector.matchLabels.app = name;
       };
 
