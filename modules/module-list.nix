@@ -50,4 +50,5 @@
   ./metabase.nix
   ./locust.nix
   ./ghost.nix
+  ./projectsend.nix
 ] ++ import ./prometheus/module-list.nix
