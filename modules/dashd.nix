@@ -147,7 +147,7 @@ in {
       image = mkOption {
         description = "Name of the dashd image to use";
         type = types.str;
-        default = "helidium/dashd";
+        default = "dashpay/dashd";
       };
 
       replicas = mkOption {
