@@ -242,6 +242,9 @@ in {
                   name = "rpc-testnet";
                   containerPort = 18332;
                 } {
+                  name = "rpc-regtest";
+                  containerPort = 18444;
+                } {
                   name = "p2p-mainnet";
                   containerPort = 8333;
                 } {
@@ -279,6 +282,9 @@ in {
           } {
             name = "rpc-testnet";
             port = 18332;
+          } {
+            name = "rpc-regtest";
+            port = 18444;
           } {
             name = "p2p-mainnet";
             port = 8333;
