@@ -227,11 +227,11 @@ in {
                 }];
 
                 resources.requests = {
-                  cpu = "1000m";
+                  cpu = "2000m";
                   memory = "2048Mi";
                 };
                 resources.limits = {
-                  cpu = "1000m";
+                  cpu = "2000m";
                   memory = "2048Mi";
                 };
 
