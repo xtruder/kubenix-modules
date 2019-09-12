@@ -53,7 +53,7 @@ with lib;
       image = mkOption {
         description = "Image to use for k8s-snapshot";
         type = types.str;
-        default = "elsdoerfer/k8s-snapshots:dev";
+        default = "elsdoerfer/k8s-snapshots:v2.0";
       };
     };
 
