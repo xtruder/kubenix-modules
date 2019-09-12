@@ -51,8 +51,8 @@ in {
       server=${b2s config.server}
 
       # Bind to given address to listen for JSON-RPC connections. Use [host]:port notation for IPv6.
-      # This option can be specified multiple times (default: bind to all interfaces)
-      #rpcbind=<addr>
+      # This option can be specified multiple times.
+      rpcbind=0.0.0.0
 
       # If no rpcpassword is set, rpc cookie auth is sought. The default `-rpccookiefile` name
       # is .cookie and found in the `-datadir` being used for bitcoind. This option is typically used
