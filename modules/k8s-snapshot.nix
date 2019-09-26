@@ -55,6 +55,19 @@ with lib;
         type = types.str;
         default = "elsdoerfer/k8s-snapshots:v2.0";
       };
+
+      gcloud = {
+        enable = mkEnableOption "gcloud";
+
+        project = mkOption {
+          description = "Name of the gcloud project";
+          type = types.str;
+        };
+
+        credentials = mkSecretOption {
+          description = "Gcloud credentials";
+        };
+      };
     };
 
     config = {
@@ -73,7 +86,28 @@ with lib;
 
               containers.k8s-snapshot = {
                 image = config.image;
+
+                env = mkIf config.gcloud.enable {
+                  GCLOUD_PROJECT.value = config.gcloud.project;
+                  GCLOUD_JSON_KEYFILE_NAME.value = "/var/run/secrets/gcloud/credentials.json";
+                };
+
+                volumeMounts = [{
+                  name = "google-application-credentials";
+                  mountPath = "/var/run/secrets/gcloud";
+                }];
               };
+
+              volumes = [{
+                name = "google-application-credentials";
+                secret = {
+                  secretName = config.gcloud.credentials.name;
+                  items = [{
+                    key = config.gcloud.credentials.key;
+                    path = "credentials.json";
+                  }];
+                };
+              }];
             };
           };
         };
