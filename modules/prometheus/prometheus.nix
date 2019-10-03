@@ -37,7 +37,7 @@ with lib;
     validateRulesAndAlerts = files: mapAttrs (n: f: let
       file = if isString f then (builtins.toFile "${n}" f) else f;
     in builtins.readFile (pkgs.runCommand "prometheus-check-${n}" {
-      buildInputs = [pkgs.prometheus_2];
+      buildInputs = [pkgs.prometheus];
     } ''
       cp ${file} ${n}
       promtool check rules ${n}
