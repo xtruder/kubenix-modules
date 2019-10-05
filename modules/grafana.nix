@@ -27,6 +27,46 @@ in {
         default = 1;
       };
 
+      resources = {
+        requests = mkOption {
+          description = "Resource requests configuration";
+          type = with types; nullOr (submodule ({name, config, ...}: {
+            options = {
+              cpu = mkOption {
+                description = "Requested CPU";
+                type = str;
+                default = "100m";
+              };
+
+              memory = mkOption {
+                description = "Requested memory";
+                type = str;
+                default = "100Mi";
+              };
+            };
+          }));
+        };
+
+        limits = mkOption {
+          description = "Resource limits configuration";
+          type = with types; nullOr (submodule ({name, config, ...}: {
+            options = {
+              cpu = mkOption {
+                description = "CPU limit";
+                type = str;
+                default = "200m";
+              };
+
+              memory = mkOption {
+                description = "Memory limit";
+                type = str;
+                default = "200Mi";
+              };
+            };
+          }));
+        };
+      };
+
       rootUrl = mkOption {
         description = "Grafana root url";
         type = types.str;
@@ -345,14 +385,8 @@ in {
                 ) config.provisioning.dashboardProviders);
 
                 resources = {
-                  requests = {
-                    memory = "100Mi";
-                    cpu = "100m";
-                  };
-                  limits = {
-                    memory = "200Mi";
-                    cpu = "200m";
-                  };
+                  requests = mkIf (config.resources.requests != null) config.resources.requests;
+                  limits = mkIf (config.resources.limits != null) config.resources.limits;
                 };
 
                 readinessProbe = {
