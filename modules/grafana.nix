@@ -45,6 +45,7 @@ in {
               };
             };
           }));
+          default = {};
         };
 
         limits = mkOption {
@@ -64,6 +65,7 @@ in {
               };
             };
           }));
+          default = {};
         };
       };
 
