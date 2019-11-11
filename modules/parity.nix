@@ -133,6 +133,7 @@ with lib;
                 }];
                 ports = [
                   { containerPort = 8545; }
+                  { containerPort = 8546; }
                   { containerPort = config.peerPort; }
                 ];
                 readinessProbe = {
@@ -166,8 +167,11 @@ with lib;
           type = "NodePort";
           selector.app = name;
           ports = [{
-            name = "parity";
+            name = "json-rpc-http";
             port = 8545;
+          } {
+            name = "json-rpc-ws";
+            port = 8546;
           } {
             name = "p2p";
             port = config.peerPort;
