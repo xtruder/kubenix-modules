@@ -119,7 +119,7 @@ with lib;
                   "--port=${toString config.peerPort}"
                   "--allow-ips=public"
                   "--max-pending-peers=32"
-                ];
+                ] ++ config.extraOptions;
 
                 resources = {
                   requests.cpu = config.resources.cpu;
