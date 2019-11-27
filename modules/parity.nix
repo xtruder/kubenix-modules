@@ -21,7 +21,7 @@ with lib;
       storage = {
         size = mkOption {
           description = "Parity storage size";
-          default = if config.chain == "homestead" then "200G" else "100G";
+          default = if config.chain == "ethereum" then "200G" else "100G";
           type = types.str;
         };
 
@@ -46,8 +46,7 @@ with lib;
 
       chain = mkOption {
         description = "Which eth chain to use";
-        type = types.enum ["classic" "homestead" "ropsten" "kovan"];
-        default = "homestead";
+        type = types.enum ["classic" "ethereum" "ropsten" "kovan"];
       };
 
       peerPort = mkOption {
@@ -61,7 +60,7 @@ with lib;
           description = "CPU resource requirements";
           type = types.str;
           default =
-            if config.chain == "classic" || config.chain == "homestead"
+            if config.chain == "classic" || config.chain == "ethereum"
             then "4000m" else "1000m";
         };
 
@@ -69,7 +68,7 @@ with lib;
           description = "Memory resource requiements";
           type = types.str;
           default =
-            if config.chain == "classic" || config.chain == "homestead"
+            if config.chain == "classic" || config.chain == "ethereum"
             then "4000Mi" else "1000Mi";
         };
       };
