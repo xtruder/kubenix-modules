@@ -9,7 +9,7 @@ with lib;
       image = mkOption {
         description = "Name of the parity image to use";
         type = types.str;
-        default = "parity/parity:v2.5.9";
+        default = "parity/parity:v2.5.10";
       };
 
       replicas = mkOption {
