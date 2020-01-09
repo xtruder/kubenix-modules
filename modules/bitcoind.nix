@@ -27,6 +27,19 @@ in {
       # server=1 tells Bitcoin-Qt and bitcoind to accept JSON-RPC commands
       server=${b2s config.server}
 
+      # Log to console
+      printtoconsole=1
+      
+      # Index all the transactions
+      txindex=1
+      
+      # Enable replace By Fee
+      walletrbf=1
+
+      [rpc]
+      # Authentication
+      rpcauth=${toString config.rpcAuth}      
+
       [main]
       rpcallowip=0.0.0.0/0
       rpcbind=0.0.0.0
@@ -44,18 +57,6 @@ in {
       rpcbind=0.0.0.0
       port=18332
       rpcport=18333
-
-      # Authentication
-      rpcauth=${toString config.rpcAuth}
-
-      # Log to console
-      printtoconsole=1
-      
-      # Index all the transactions
-      txindex=1
-      
-      # Enable replace By Fee
-      walletrbf=1
     '';
   in {
     options = {
