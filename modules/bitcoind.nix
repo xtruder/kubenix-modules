@@ -42,8 +42,8 @@ in {
       rpcauth=${toString config.rpcAuth}      
 
       [main]
-      rpcport=18332
-      port=18333
+      rpcport=8332
+      port=8333
       rpcallowip=0.0.0.0/0
       rpcbind=0.0.0.0
 
