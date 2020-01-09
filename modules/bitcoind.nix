@@ -12,6 +12,7 @@ in {
       ## bitcoin.conf configuration file. Lines beginning with # are comments.
       ##
 
+      # [core]
       # Network-related settings:
 
       # Run on the test network instead of the real bitcoin network
@@ -36,27 +37,28 @@ in {
       # Enable replace By Fee
       walletrbf=1
 
-      [rpc]
+      # [rpc]
       # Authentication
       rpcauth=${toString config.rpcAuth}      
 
       [main]
-      rpcallowip=0.0.0.0/0
-      rpcbind=0.0.0.0
       port=18332
       rpcport=18333
+      rpcallowip=0.0.0.0/0
+      rpcbind=0.0.0.0
 
       [test]
-      rpcallowip=0.0.0.0/0
-      rpcbind=0.0.0.0
       port=18332
       rpcport=18333
+      rpcallowip=0.0.0.0/0
+      rpcbind=0.0.0.0
 
       [regtest]
-      rpcallowip=0.0.0.0/0
-      rpcbind=0.0.0.0
       port=18332
       rpcport=18333
+      rpcallowip=0.0.0.0/0
+      rpcbind=0.0.0.0
+      
     '';
   in {
     options = {
