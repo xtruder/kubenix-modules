@@ -81,6 +81,7 @@ with k8s;
         namespace = module.namespace;
         configuration = {
           kubernetes.resources.statefulSets.vault.spec.serviceName = name;
+          kubernetes.resources.statefulSets.vault.spec.selector.matchLabels.app = name;
           resourcePath = ["statefulSets" "vault" "spec" "template" "spec"];
           serviceAccountName = module.name;
           mountContainer = "vault";
@@ -117,10 +118,10 @@ with k8s;
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
+          selector.matchLabels.app = name;
           podManagementPolicy = "Parallel";
           serviceName = name;
           replicas = config.replicas;
-          selector.matchLabels.app = name;
           template = {
             metadata.name = name;
             metadata.labels.app = name;

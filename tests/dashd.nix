@@ -3,7 +3,7 @@
 {
   require = [./test.nix ../modules/dashd.nix];
 
-  kubernetes.modules.dashd = {
+  kubernetes.modules.my-dashd = {
     module = "dashd";
     configuration.rpcAuth = "";
   };

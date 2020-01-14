@@ -19,7 +19,7 @@
     };
   };
 
-  kubernetes.modules.vault-controller = {
+  kubernetes.modules.my-vault-controller = {
     module = "vault-controller";
     configuration = {
       namespace = "default";
@@ -32,7 +32,7 @@
     token = k8s.toBase64 "e2bf6c5e-88cc-2046-755d-7ba0bdafef35";
   };
 
-  kubernetes.modules.vault-secrets = {
+  kubernetes.modules.my-vault-secrets = {
     module = "deployer";
 
     configuration.vars.vault_token = k8s.secretToEnv config.kubernetes.modules.vault.configuration.dev.token;

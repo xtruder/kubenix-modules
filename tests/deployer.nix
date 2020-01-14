@@ -5,7 +5,9 @@
 
   kubernetes.modules.mariadb = {
     module = "mariadb";
-    configuration.rootPassword.name = "mysql";
+    configuration = {
+      rootPassword.name = "mysql";
+    };
   };
 
   kubernetes.resources.secrets.mysql.data.password = k8s.toBase64 "root";

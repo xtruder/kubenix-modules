@@ -44,6 +44,7 @@ with k8s;
 
       kubernetes.resources.statefulSets.ksql = {
         spec = {
+          selector.matchLabels.app = module.name;
           serviceName = module.name;
           replicas = config.replicas;
           podManagementPolicy = "Parallel";

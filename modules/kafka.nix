@@ -123,6 +123,7 @@ with k8s;
 
       kubernetes.resources.statefulSets.kafka = {
         spec = {
+          selector.matchLabels.app = module.name;
           serviceName = module.name;
           replicas = config.replicas;
           podManagementPolicy = "Parallel";

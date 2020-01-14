@@ -802,6 +802,8 @@ with lib;
         metadata.labels.app = module.name;
         metadata.labels.component = "redis-node";
         spec = {
+          selector.matchLabels.app = module.name;
+          selector.matchLabels.component = "redis-node";
           updateStrategy.type = "RollingUpdate";
           podManagementPolicy = "Parallel";
           serviceName = "${module.name}-node";

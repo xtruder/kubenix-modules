@@ -203,6 +203,7 @@ in {
           replicas = config.replicas;
           serviceName = module.name;
           podManagementPolicy = "Parallel";
+          selector.matchLabels.app = module.name;
           template = {
             metadata.labels.app = module.name;
             spec = {

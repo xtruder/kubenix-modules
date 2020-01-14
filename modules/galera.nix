@@ -96,6 +96,7 @@ with k8s;
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
+          selector.matchLabels.app = name;
           serviceName = name;
           replicas = config.replicas;
           template = {
