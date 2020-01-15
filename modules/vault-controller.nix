@@ -39,6 +39,7 @@ with k8s;
     config = {
       kubernetes.resources.customResourceDefinitions.secret-claims = {
         metadata.name = "secretclaims.vaultproject.io";
+        metadata.namespace = "default";
         spec = {
           group = "vaultproject.io";
           version = "v1";
