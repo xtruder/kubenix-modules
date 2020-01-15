@@ -4,12 +4,12 @@ with lib;
 with k8s;
 
 {
-  kubernetes.moduleDefinitions.secret-claim.module = {config, name, ...}: {
+  kubernetes.moduleDefinitions.secret-claim.module = {config, module, ...}: {
     options = {
       name = mkOption {
         description = "Name of the secret claim";
         type = types.str;
-        default = name;
+        default = module.name;
       };
 
       type = mkOption {
@@ -38,8 +38,6 @@ with k8s;
 
     config = {
       kubernetes.resources.customResourceDefinitions.secret-claims = {
-        kind = "CustomResourceDefinition";
-        apiVersion = "apiextensions.k8s.io/v1beta1";
         metadata.name = "secretclaims.vaultproject.io";
         spec = {
           group = "vaultproject.io";
@@ -47,6 +45,7 @@ with k8s;
           scope = "Namespaced";
           names = {
             plural = "secretclaims";
+            singular = "secretclaim";
             kind = "SecretClaim";
             shortNames = ["scl"];
           };
@@ -66,7 +65,7 @@ with k8s;
     };
   };
 
-  kubernetes.moduleDefinitions.vault-controller.module = {config, name, module, ...}: {
+  kubernetes.moduleDefinitions.vault-controller.module = {config, module, ...}: {
     options = {
       image = mkOption {
         description = "Vault controller image to use";
@@ -120,14 +119,14 @@ with k8s;
 
     config = {
       kubernetes.resources.deployments.vault-controller = {
-        metadata.name = "vault-controller";
-        metadata.labels.app = "vault-controller";
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
         spec = {
           replicas = 1;
-          selector.matchLabels.app = "vault-controller";
+          selector.matchLabels.app = module.name;
           template = {
-            metadata.labels.app = "vault-controller";
-            spec.serviceAccountName = "vault-controller";
+            metadata.labels.app = module.name;
+            spec.serviceAccountName = module.name;
             spec.containers.vault-controller = {
               image = config.image;
               imagePullPolicy = "Always";
@@ -181,8 +180,8 @@ with k8s;
       };
 
       kubernetes.resources.serviceAccounts.vault-controller = {
-        metadata.name = name;
-        metadata.labels.app = name;
+        metadata.name = module.name;
+        metadata.labels.app = module.name;
       };
 
       # binding for tokenreview kubernetes API
@@ -211,7 +210,7 @@ with k8s;
         };
         subjects = [{
           kind = "ServiceAccount";
-          name = name;
+          name = module.name;
           namespace = module.namespace;
         }];
       };
@@ -226,7 +225,7 @@ with k8s;
         };
         subjects = [{
           kind = "ServiceAccount";
-          name = name;
+          name = module.name;
           namespace = module.namespace;
         }];
       };

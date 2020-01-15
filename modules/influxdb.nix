@@ -66,6 +66,7 @@ in {
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
+          selector.matchLabels.app = name;
           replicas = 1;
           serviceName = name;
           template = {

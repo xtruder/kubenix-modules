@@ -66,6 +66,7 @@ with k8s;
         metadata.name = module.name;
         metadata.labels.app = module.name;
         spec = {
+          selector.matchLabels.app = module.name;
           replicas = config.replicas;
           serviceName = "${module.name}-headless";
           template = {

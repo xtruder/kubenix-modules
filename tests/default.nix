@@ -53,12 +53,12 @@ in {
   cloud-sql-proxy = buildTest ./cloud-sql-proxy.nix {};
   mariadb = buildTest ./mariadb.nix {};
   k8s-snapshot = buildTest ./k8s-snapshot.nix {};
-  zookeeper = buildTest ./zookeeper.nix {};
-  kafka = buildTest ./kafka.nix {};
-  ksql = buildTest ./ksql.nix {};
+  #zookeeper = buildTest ./zookeeper.nix {};
+  #kafka = buildTest ./kafka.nix {};
+  #ksql = buildTest ./ksql.nix {};
   argo-ingress-controller = buildTest ./argo-ingress-controller.nix {};
   ambassador = buildTest ./ambassador.nix {};
-  ilp-connector = buildTest ./ilp-connector.nix {};
+  #ilp-connector = buildTest ./ilp-connector.nix {};
   metabase = buildTest ./metabase.nix {};
   locust = buildTest ./locust.nix {};
   ghost = buildTest ./ghost.nix {};

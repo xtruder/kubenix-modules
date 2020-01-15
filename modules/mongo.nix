@@ -82,7 +82,9 @@ with k8s;
         metadata.labels.app = module.name;
 
         spec = {
+          selector.matchLabels.app = module.name;
           serviceName = module.name;
+
           podManagementPolicy = "Parallel";
           replicas = config.replicas;
 

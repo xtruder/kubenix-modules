@@ -23,7 +23,8 @@ with lib;
     };
 
     config = {
-      kubernetes.resources.customResourceDefinitions."snapshotrules.k8s-snapshots.elsdoerfer.com" = {
+      kubernetes.resources.customResourceDefinitions.snapshotrules = {
+        metadata.name = "snapshotrules.k8s-snapshots.elsdoerfer.com";
         spec = {
           group = "k8s-snapshots.elsdoerfer.com";
           version = "v1";
@@ -37,7 +38,7 @@ with lib;
         };
       };
 
-      kubernetes.customResources.snapshotRules.rule = {
+      kubernetes.customResources.snapshotrules.rule = {
         metadata.name = module.name;
         spec = {
           deltas = toString config.deltas;

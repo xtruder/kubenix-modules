@@ -1,7 +1,10 @@
 { config, k8s, ... }:
 
 {
-  require = import ../modules/module-list.nix;
+  require = [
+    ./test.nix
+    ../modules/redis.nix
+  ];
 
   kubernetes.modules.redis = {
     module = "redis";

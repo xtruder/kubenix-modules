@@ -76,6 +76,7 @@ with lib;
         metadata.name = module.name;
         metadata.labels.app = module.name;
         spec = {
+          selector.matchLabels.app = module.name;
           serviceName = "${module.name}-headless";
           replicas = config.replicas;
           podManagementPolicy = "Parallel";

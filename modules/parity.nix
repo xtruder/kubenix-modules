@@ -85,6 +85,7 @@ with lib;
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
+          selector.matchLabels.app = name;
           replicas = config.replicas;
           serviceName = name;
           podManagementPolicy = "Parallel";
