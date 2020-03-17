@@ -69,7 +69,7 @@ with lib;
           type = types.str;
           default =
             if config.chain == "classic" || config.chain == "ethereum"
-            then "4000Mi" else "1000Mi";
+            then "6000Mi" else "1000Mi";
         };
       };
 
