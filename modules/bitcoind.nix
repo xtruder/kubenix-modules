@@ -146,11 +146,11 @@ in {
 
                 resources.requests = {
                   cpu = "2000m";
-                  memory = "2048Mi";
+                  memory = "5Gi";
                 };
                 resources.limits = {
                   cpu = "2000m";
-                  memory = "2048Mi";
+                  memory = "5Gi";
                 };
 
                 ports = [{
