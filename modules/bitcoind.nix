@@ -124,6 +124,7 @@ in {
           template = {
             metadata.labels.app = module.name;
             spec = {
+              securityContext.fsGroup = 1000;
               initContainers = [{
                 name = "copy-bitcoind-config";
                 image = "busybox";
