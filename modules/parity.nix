@@ -18,11 +18,6 @@ with lib;
         default = 1;
       };
 
-      chain = mkOption {
-        description = "Which eth chain to use";
-        type = types.enum ["mainnet" "ethereum" "kovan" "ropsten" "classic" "classic-testnet" "expanse" "dev" "musicoin" "ellaism" "tobalaba"];
-      };
-
       storage = {
         size = mkOption {
           description = "Parity storage size";
@@ -37,50 +32,27 @@ with lib;
         };
       };
 
-      jsonrpc = {
-        apis = mkOption {
-          description = "Specify the APIs available through the HTTP JSON-RPC interface using a comma-delimited list of API names.";
-          type = types.listOf types.str;
-          default = ["eth" "net" "web3"];
-        };
-
-        hosts = mkOption {
-          description = "List of allowed Host header values.";
-          type = types.listOf types.str;
-          default = ["all"];
-        };
-
-        interfaces = mkOption {
-          description = "Network interfaces. Valid values are 'all', 'local' or the ip of the interface you want node to listen to.";
-          type = types.listOf types.str;
-          default = ["all"];
-        };
-
-        cors = mkOption {
-          description = "Specify CORS header for HTTP JSON-RPC API responses.";
-          type = types.listOf types.str;
-          default = ["all"];
-        };
+      jsonrpc.apis = mkOption {
+        description = "List of exposed RPC apis";
+        type = types.listOf types.str;
+        default = ["eth" "net" "web3"];
       };
 
-      ws = {
-        hosts = mkOption {
-          description = "List of allowed Host header values. This option will validate the Host header sent by the browser, it is additional security against some attack vectors.";
-          type = types.listOf types.str;
-          default = ["all"];
-        };
+      jsonrpc.hosts = mkOption {
+        description = "Which hosts are allowed to connect to json rpc";
+        type = types.listOf types.str;
+        default = ["all"];
+      };
 
-        interfaces = mkOption {
-          description = "Specify the hostname portion of the WebSockets JSON-RPC server, IP should be an interface's IP address, or all (all interfaces) or local.";
-          type = types.listOf types.str;
-          default = ["all"];
-        };
+      chain = mkOption {
+        description = "Which eth chain to use";
+        type = types.enum ["classic" "ethereum" "ropsten" "kovan"];
+      };
 
-        origins = mkOption {
-          description = "Specify Origin header values allowed to connect.";
-          type = types.listOf types.str;
-          default = ["all"];
-        };
+      peerPort = mkOption {
+        description = "Node port to listen for p2p traffic";
+        type = types.int;
+        default = 30303;
       };
 
       resources = {
@@ -138,18 +110,15 @@ with lib;
               containers.parity = {
                 image = config.image;
                 args = [
+                  "--jsonrpc-apis=${concatStringsSep "," config.jsonrpc.apis}"
+                  ''--jsonrpc-cors="*"''
+                  "--jsonrpc-interface=all"
                   "--geth"
                   "--chain=${config.chain}"
-                  "--port=30303"
+                  "--jsonrpc-hosts=${concatStringsSep "," config.jsonrpc.hosts}"
+                  "--port=${toString config.peerPort}"
                   "--allow-ips=public"
                   "--max-pending-peers=32"
-                  "--jsonrpc-apis=${concatStringsSep "," config.jsonrpc.apis}"
-                  "--jsonrpc-cors=${concatStringsSep "," config.jsonrpc.cors}"
-                  "--jsonrpc-interface=${concatStringsSep "," config.jsonrpc.interfaces}"
-                  "--jsonrpc-hosts=${concatStringsSep "," config.jsonrpc.hosts}"
-                  "--ws-origins=${concatStringsSep "," config.ws.origins}"
-                  "--ws-hosts=${concatStringsSep "," config.ws.hosts}"
-                  "--ws-interface=${concatStringsSep "," config.ws.interfaces}"
                 ] ++ config.extraOptions;
 
                 resources = {
@@ -165,7 +134,7 @@ with lib;
                 ports = [
                   { containerPort = 8545; }
                   { containerPort = 8546; }
-                  { containerPort = 30303; }
+                  { containerPort = config.peerPort; }
                 ];
                 readinessProbe = {
                   httpGet = {
@@ -195,6 +164,7 @@ with lib;
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
+          type = "NodePort";
           selector.app = name;
           ports = [{
             name = "json-rpc-http";
@@ -204,7 +174,8 @@ with lib;
             port = 8546;
           } {
             name = "p2p";
-            port = 30303;
+            port = config.peerPort;
+            nodePort = config.peerPort;
           }];
         };
       };
