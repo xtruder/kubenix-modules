@@ -46,7 +46,7 @@ with lib;
 
       chain = mkOption {
         description = "Which eth chain to use";
-        type = types.enum ["classic" "ethereum" "ropsten" "kovan"];
+        type = types.enum ["mainnet" "ethereum" "kovan" "ropsten" "classic" "classic-testnet" "expanse" "dev" "musicoin" "ellaism" "tobalaba"];
       };
 
       resources = {
