@@ -49,12 +49,6 @@ with lib;
         type = types.enum ["classic" "ethereum" "ropsten" "kovan"];
       };
 
-      peerPort = mkOption {
-        description = "Node port to listen for p2p traffic";
-        type = types.int;
-        default = 30303;
-      };
-
       resources = {
         cpu = mkOption {
           description = "CPU resource requirements";
@@ -116,7 +110,7 @@ with lib;
                   "--geth"
                   "--chain=${config.chain}"
                   "--jsonrpc-hosts=${concatStringsSep "," config.jsonrpc.hosts}"
-                  "--port=${toString config.peerPort}"
+                  "--port=30303"
                   "--allow-ips=public"
                   "--max-pending-peers=32"
                 ] ++ config.extraOptions;
@@ -134,7 +128,7 @@ with lib;
                 ports = [
                   { containerPort = 8545; }
                   { containerPort = 8546; }
-                  { containerPort = config.peerPort; }
+                  { containerPort = 30303; }
                 ];
                 readinessProbe = {
                   httpGet = {
@@ -164,7 +158,6 @@ with lib;
         metadata.name = name;
         metadata.labels.app = name;
         spec = {
-          type = "NodePort";
           selector.app = name;
           ports = [{
             name = "json-rpc-http";
@@ -174,8 +167,7 @@ with lib;
             port = 8546;
           } {
             name = "p2p";
-            port = config.peerPort;
-            nodePort = config.peerPort;
+            port = 30303;
           }];
         };
       };
