@@ -27,6 +27,7 @@ in {
   kibana = buildTest ./kibana.nix {};
   parity = buildTest ./parity.nix {};
   openethereum = buildTest ./openethereum.nix {};
+  core-geth = buildTest ./core-geth.nix {};
   mediawiki = buildTest ./mediawiki.nix {};
   beehive = buildTest ./beehive.nix {};
   minio = buildTest ./minio.nix {};
